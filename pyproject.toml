@@ -1,0 +1,65 @@
+[project]
+name = "agentic-doc"
+version = "0.1.0"
+description = "Production-grade Agentic RAG for documents."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "packages/*",
+    "apps/*",
+]
+
+[tool.uv.sources]
+agentic-doc-core    = { workspace = true }
+agentic-doc-rag     = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.19",
+    "ty>=0.0.53",
+]
+
+
+[project.scripts]
+agentic-doc = "agentic_doc:main"
+
+# =====================
+# Tooling
+# =====================
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+    "RUF",    # Ruff-specific rules
+]
+ignore = ["E501"]  # Ruff formatter handles line length
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["packages", "apps"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers --cov --cov-report=term-missing"
+
+[tool.ty]
+environment = { root = ["packages/core/src", "packages/rag/src", "apps/ingest"] }
