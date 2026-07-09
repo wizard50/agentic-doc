@@ -27,6 +27,7 @@ dev = [
     "agentic-doc-core",
     "agentic-doc-rag",
     "explorer",
+    "arize-phoenix>=12.0",
     "pre-commit>=4.6.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
