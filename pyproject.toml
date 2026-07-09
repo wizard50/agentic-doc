@@ -18,11 +18,15 @@ members = [
 ]
 
 [tool.uv.sources]
-agentic-doc-core    = { workspace = true }
-agentic-doc-rag     = { workspace = true }
+agentic-doc-core = { workspace = true }
+agentic-doc-rag  = { workspace = true }
+explorer  = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "agentic-doc-core",
+    "agentic-doc-rag",
+    "explorer",
     "pre-commit>=4.6.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
@@ -31,9 +35,6 @@ dev = [
 ]
 
 
-[project.scripts]
-agentic-doc = "agentic_doc:main"
-
 # =====================
 # Tooling
 # =====================
@@ -41,6 +42,9 @@ agentic-doc = "agentic_doc:main"
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.ruff.lint.isort]
+known-first-party = ["agentic_doc_core", "agentic_doc_explorer", "agentic_doc_rag"]
 
 [tool.ruff.lint]
 select = [
@@ -62,4 +66,4 @@ python_files = ["test_*.py"]
 addopts = "-ra --strict-markers --cov --cov-report=term-missing"
 
 [tool.ty]
-environment = { root = ["packages/core/src", "packages/rag/src", "apps/ingest"] }
+environment = { root = ["packages/core/src", "packages/rag/src", "apps/explorer/src"] }

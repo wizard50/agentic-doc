@@ -15,7 +15,7 @@ packages/
   core/     # Shared config and foundational types
   rag/      # RAG retrieval layer (chunking, embeddings, vector store)
 apps/
-  ingest/   # Document ingestion worker
+  explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
 ```
 
 ## Setup
@@ -31,6 +31,15 @@ pre-commit install
 uv run pytest
 uv run ruff check .
 uv run ty check
+```
+
+## M1 explorer
+
+![Doc Explorer search UI](assets/doc-explorer-screenhot.png)
+
+```bash
+uv run explorer ingest   # index corpus into data/chroma
+uv run explorer          # launch Streamlit search UI
 ```
 
 ## License
