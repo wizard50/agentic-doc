@@ -71,3 +71,8 @@ We are currently building the foundational RAG system:
 - Propose small, incremental changes when possible
 - Show the diff or key changes after implementing something
 - Prioritize clean architecture, observability, and evaluation over quick hacks
+- When writing, reviewing, or refactoring code, follow [`.agents/skills/karpathy-guidelines/SKILL.md`](.agents/skills/karpathy-guidelines/SKILL.md) (think before coding, simplicity first, surgical changes, goal-driven execution)
+
+## Agent Skills
+Project skills live under [`.agents/skills/`](.agents/skills/) (portable Agent Skills format). Start with:
+- **karpathy-guidelines** — behavioral rules to avoid overcomplication, drive-by refactors, and unverified work
