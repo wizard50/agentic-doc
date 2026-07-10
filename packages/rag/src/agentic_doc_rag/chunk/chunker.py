@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from agentic_doc_rag.models import DocumentChunk
+from agentic_doc_rag.observability.tracing import get_tracer, mark_chain_span
 
 HEADER_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 
@@ -147,17 +148,28 @@ def chunk_markdown_dir(
     header_levels: set[int] | None = None,
     skip_files: frozenset[str] | set[str] | None = None,
 ) -> list[DocumentChunk]:
+    root_path = Path(root)
     excluded = skip_files or frozenset()
-    chunks: list[DocumentChunk] = []
-    for file_path in sorted(Path(root).rglob("*.md")):
-        if file_path.name in excluded:
-            continue
-        chunks.extend(
-            chunk_markdown_file(
-                file_path,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-                header_levels=header_levels,
+
+    with get_tracer(__name__).start_as_current_span("chunk.markdown_dir") as span:
+        mark_chain_span(span)
+        span.set_attribute("source_dir", str(root_path))
+
+        chunks: list[DocumentChunk] = []
+        file_count = 0
+        for file_path in sorted(root_path.rglob("*.md")):
+            if file_path.name in excluded:
+                continue
+            file_count += 1
+            chunks.extend(
+                chunk_markdown_file(
+                    file_path,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    header_levels=header_levels,
+                )
             )
-        )
-    return chunks
+
+        span.set_attribute("file_count", file_count)
+        span.set_attribute("chunk_count", len(chunks))
+        return chunks
