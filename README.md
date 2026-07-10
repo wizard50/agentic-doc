@@ -44,16 +44,18 @@ uv run explorer          # launch Streamlit search UI
 
 ## Observability (Phoenix)
 
-Phoenix runs as a local dev server (included in dev dependencies). Tracing is off by default — set `PHOENIX_ENABLED=true` in `.env` once instrumentation is wired up.
+Ingest and search are instrumented with OpenTelemetry spans exported to [Arize Phoenix](https://arize.com/docs/phoenix). Tracing is off by default — set `PHOENIX_ENABLED=true` in `.env` (or prefix commands below).
 
 ```bash
 # Terminal 1 — UI at http://localhost:6006, collector at http://localhost:4317
 uv run phoenix serve
 
 # Terminal 2 — index and search (with tracing enabled)
-PHOENIX_ENABLED=true uv run explorer ingest
-PHOENIX_ENABLED=true uv run explorer
+PHOENIX_ENABLED=true uv run explorer ingest   # spans: ingest.run (CHAIN)
+PHOENIX_ENABLED=true uv run explorer          # spans: vectorstore.search (RETRIEVER)
 ```
+
+With tracing enabled, the Doc Explorer sidebar shows an **Open Phoenix** link to the local UI.
 
 ## License
 

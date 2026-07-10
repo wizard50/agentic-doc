@@ -1,11 +1,19 @@
 import streamlit as st
 
-from agentic_doc_explorer.constants import DEFAULT_TOP_K, EXAMPLE_QUERIES, PREVIEW_LENGTH
+from agentic_doc_core.config import get_phoenix_settings
+from agentic_doc_explorer.constants import (
+    DEFAULT_TOP_K,
+    EXAMPLE_QUERIES,
+    PHOENIX_UI_URL,
+    PREVIEW_LENGTH,
+)
 from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
 from agentic_doc_rag.models import SearchResult
+from agentic_doc_rag.observability import register_tracing
 from agentic_doc_rag.vectorstore.factory import create_vector_store
 
+register_tracing(get_phoenix_settings())
 require_workspace_root("explorer")
 
 st.set_page_config(
@@ -43,6 +51,7 @@ def _render_hit(hit: SearchResult, index: int) -> None:
 
 
 settings = _settings()
+phoenix_settings = get_phoenix_settings()
 store = _vectorstore()
 document_count = store.count()
 
@@ -52,6 +61,12 @@ with st.sidebar:
     st.text(f"Collection: {settings.chroma_collection_name}")
     st.text(f"Store: {settings.chroma_persist_dir}")
     top_k = st.slider("Results (top-k)", min_value=1, max_value=10, value=DEFAULT_TOP_K)
+
+    if phoenix_settings.enabled:
+        st.divider()
+        st.header("Observability")
+        st.link_button("Open Phoenix", PHOENIX_UI_URL, use_container_width=True)
+        st.caption(f"Project: {phoenix_settings.project_name}")
 
     st.divider()
     st.header("Try an example")

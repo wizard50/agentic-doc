@@ -3,10 +3,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from agentic_doc_core.config import get_phoenix_settings
 from agentic_doc_explorer.constants import RUST_BOOK_SKIP, RUST_BOOK_SRC
 from agentic_doc_explorer.pipeline import run_ingestion
 from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
+from agentic_doc_rag.observability import register_tracing
 from agentic_doc_rag.vectorstore.factory import create_vector_store
 
 
@@ -46,6 +48,8 @@ def _run_ui() -> None:
 
 
 def main() -> None:
+    register_tracing(get_phoenix_settings())
+
     parser = argparse.ArgumentParser(
         description="Agentic Doc explorer — search UI and ingestion CLI."
     )
