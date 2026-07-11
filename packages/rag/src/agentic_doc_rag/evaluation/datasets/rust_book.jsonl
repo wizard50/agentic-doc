@@ -1,0 +1,17 @@
+{"id": "ownership-001", "query": "What is ownership in Rust?", "expected_sources": ["ch04-01-what-is-ownership.md"], "expected_section_paths": ["What Is Ownership"], "tags": ["ownership", "core-concepts"]}
+{"id": "borrowing-001", "query": "What is borrowing in Rust?", "expected_sources": ["ch04-02-references-and-borrowing.md"], "expected_section_paths": ["References and Borrowing"], "tags": ["borrowing", "core-concepts"]}
+{"id": "structs-001", "query": "How do structs work in Rust?", "expected_sources": ["ch05-01-defining-structs.md"], "expected_section_paths": ["Defining and Instantiating Structs"], "tags": ["structs", "core-concepts"]}
+{"id": "match-001", "query": "How does match work in Rust?", "expected_sources": ["ch06-02-match.md"], "expected_section_paths": ["Control Flow Construct"], "tags": ["match", "control-flow"]}
+{"id": "traits-001", "query": "What are traits in Rust?", "expected_sources": ["ch10-02-traits.md"], "expected_section_paths": ["Defining Shared Behavior with Traits"], "tags": ["traits", "generics"]}
+{"id": "result-001", "query": "How do you use Result for error handling?", "expected_sources": ["ch09-02-recoverable-errors-with-result.md"], "expected_section_paths": ["Recoverable Errors with"], "tags": ["error-handling", "result"]}
+{"id": "slices-001", "query": "What is a slice in Rust?", "expected_sources": ["ch04-03-slices.md"], "expected_section_paths": ["The Slice Type"], "tags": ["slices", "ownership"]}
+{"id": "enums-001", "query": "What is an enum in Rust?", "expected_sources": ["ch06-01-defining-an-enum.md"], "expected_section_paths": ["Defining an Enum"], "tags": ["enums", "core-concepts"]}
+{"id": "lifetimes-001", "query": "How do lifetimes work in Rust?", "expected_sources": ["ch10-03-lifetime-syntax.md"], "expected_section_paths": ["Validating References with Lifetimes"], "tags": ["lifetimes", "generics"]}
+{"id": "panic-001", "query": "What is panic in Rust?", "expected_sources": ["ch09-01-unrecoverable-errors-with-panic.md"], "expected_section_paths": ["Unrecoverable Errors with"], "tags": ["error-handling", "panic"]}
+{"id": "methods-001", "query": "How do methods work on structs?", "expected_sources": ["ch05-03-method-syntax.md"], "expected_section_paths": ["Method Syntax"], "tags": ["structs", "methods"]}
+{"id": "generics-001", "query": "What are generics in Rust?", "expected_sources": ["ch10-00-generics.md"], "tags": ["generics"]}
+{"id": "guessing-game-001", "query": "How does the guessing game tutorial work?", "expected_sources": ["ch02-00-guessing-game-tutorial.md"], "tags": ["tutorial"]}
+{"id": "if-let-001", "query": "What is if let in Rust?", "expected_sources": ["ch06-03-if-let.md"], "expected_section_paths": ["Concise Control Flow with"], "tags": ["control-flow", "if-let"]}
+{"id": "panic-vs-result-001", "query": "When should you panic versus return Result?", "expected_sources": ["ch09-03-to-panic-or-not-to-panic.md"], "expected_section_paths": ["or Not to"], "tags": ["error-handling", "panic", "result"]}
+{"id": "modules-001", "query": "How do modules work in Rust?", "expected_sources": ["ch07-00-managing-growing-projects-with-packages-crates-and-modules.md"], "tags": ["modules", "projects"]}
+{"id": "collections-001", "query": "What are common collections in Rust?", "expected_sources": ["ch08-00-common-collections.md"], "tags": ["collections"]}
