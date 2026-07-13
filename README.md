@@ -2,11 +2,9 @@
 
 Production-grade Agentic RAG for technical documentation — with observability, evaluation, and clean architecture.
 
-The workspace is **domain-agnostic**: packages and apps are built to work with any technical documentation corpus (Markdown, code, PDFs, etc.). For local development, [The Rust Programming Language](https://github.com/rust-lang/book) will be the first reference corpus — not yet wired up.
+The workspace is **domain-agnostic**: packages and apps are built to work with any technical documentation corpus (Markdown, code, PDFs, etc.). For local development, [The Rust Programming Language](https://github.com/rust-lang/book) is the reference corpus.
 
-> **Status:** WIP scaffold. Workspace layout, tooling, and settings are in place. Ingestion, retrieval, vector store, UI, and production backend are planned next.
-
-Observability (Phoenix) and evaluation will be added as the RAG pipeline matures. See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
+See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
 
 ## Project structure
 
@@ -40,7 +38,21 @@ uv run ty check
 ```bash
 uv run explorer ingest   # index corpus into data/chroma
 uv run explorer          # launch Streamlit search UI
+uv run explorer eval     # run retrieval benchmark against golden queries
 ```
+
+## Evaluation
+
+Retrieval quality is measured against a golden query dataset (`rust_book.jsonl`) using deterministic metrics: hit@k, MRR, recall@k, and per-tag breakdowns.
+
+```bash
+# Requires an indexed corpus (see ingest above)
+uv run explorer eval
+uv run explorer eval --top-k 5 --output json
+uv run explorer eval --fail-under 0.75   # exit 1 if hit@k is below threshold
+```
+
+Configure defaults via `.env` (`EVAL_TOP_K`, `EVAL_DATASET_PATH`, `EVAL_FAIL_UNDER_HIT_AT_K`).
 
 ## Observability (Phoenix)
 
