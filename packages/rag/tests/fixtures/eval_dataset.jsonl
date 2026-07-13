@@ -1,0 +1,2 @@
+{"id": "ownership-fixture", "query": "What is ownership in Rust?", "expected_sources": ["ownership.md"], "expected_section_paths": ["What Is Ownership"], "tags": ["ownership"]}
+{"id": "borrowing-fixture", "query": "What is borrowing in Rust?", "expected_sources": ["borrowing.md"], "expected_section_paths": ["References and Borrowing"], "tags": ["borrowing"]}

@@ -15,6 +15,9 @@ uv run explorer ingest
 uv run explorer
 # or explicitly:
 uv run explorer ui
+
+# run retrieval evaluation (requires ingest first)
+uv run explorer eval
 ```
 
 ## Deploy (Streamlit Community Cloud)
