@@ -11,7 +11,7 @@ from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
 from agentic_doc_rag.models import SearchResult
 from agentic_doc_rag.observability import register_tracing
-from agentic_doc_rag.vectorstore.factory import create_vector_store
+from agentic_doc_rag.retrieval import RetrievalRequest, create_retriever
 
 register_tracing(get_phoenix_settings())
 require_workspace_root("explorer")
@@ -27,8 +27,8 @@ st.caption("Semantic search over technical documentation — Milestone 1 RAG cor
 
 
 @st.cache_resource
-def _vectorstore():
-    return create_vector_store(get_rag_settings())
+def _retriever():
+    return create_retriever(get_rag_settings())
 
 
 @st.cache_resource
@@ -52,8 +52,8 @@ def _render_hit(hit: SearchResult, index: int) -> None:
 
 settings = _settings()
 phoenix_settings = get_phoenix_settings()
-store = _vectorstore()
-document_count = store.count()
+retriever = _retriever()
+document_count = retriever.count()
 
 with st.sidebar:
     st.header("Corpus")
@@ -95,7 +95,7 @@ if st.session_state.get("run_search"):
         st.info("Enter a question to search.")
     else:
         with st.spinner("Searching..."):
-            hits = store.search(query.strip(), k=top_k)
+            hits = retriever.retrieve(RetrievalRequest(query=query.strip(), top_k=top_k))
 
         st.subheader("Results")
         st.caption("Lower score = closer match (Chroma distance)")

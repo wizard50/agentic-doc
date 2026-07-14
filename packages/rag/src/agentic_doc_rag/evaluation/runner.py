@@ -3,7 +3,8 @@ from pydantic import BaseModel, Field
 from agentic_doc_rag.evaluation.metrics import compute_report
 from agentic_doc_rag.evaluation.models import EvalQuery, EvalReport
 from agentic_doc_rag.models import SearchResult
-from agentic_doc_rag.vectorstore.base import VectorStore
+from agentic_doc_rag.retrieval.models import RetrievalRequest
+from agentic_doc_rag.retrieval.protocols import Retriever
 
 
 class EmptyVectorStoreError(Exception):
@@ -18,18 +19,21 @@ class RetrievalEvalRun(BaseModel):
 
 
 def run_retrieval_eval(
-    vectorstore: VectorStore,
+    retriever: Retriever,
     queries: list[EvalQuery],
     *,
     top_k: int,
     dataset_name: str,
 ) -> RetrievalEvalRun:
-    """Run golden queries against a vector store and compute retrieval metrics."""
-    if vectorstore.count() == 0:
+    """Run golden queries against a retriever and compute retrieval metrics."""
+    if retriever.count() == 0:
         msg = "Vector store collection is empty. Index the corpus first:\n  uv run explorer ingest"
         raise EmptyVectorStoreError(msg)
 
-    results_by_query_id = {query.id: vectorstore.search(query.query, k=top_k) for query in queries}
+    results_by_query_id = {
+        query.id: retriever.retrieve(RetrievalRequest(query=query.query, top_k=top_k))
+        for query in queries
+    }
     report = compute_report(
         queries,
         results_by_query_id,

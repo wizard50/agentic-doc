@@ -8,6 +8,7 @@ from agentic_doc_rag.evaluation.models import EvalQuery
 from agentic_doc_rag.evaluation.reporting import format_eval_summary
 from agentic_doc_rag.evaluation.runner import EmptyVectorStoreError, run_retrieval_eval
 from agentic_doc_rag.models import DocumentChunk, SearchResult
+from agentic_doc_rag.retrieval import PipelineRetriever, SemanticStage
 from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -44,6 +45,10 @@ def _search_result(chunk_id: str, source: str) -> SearchResult:
     )
 
 
+def _stub_retriever(store: _StubVectorStore) -> PipelineRetriever:
+    return PipelineRetriever(stages=[SemanticStage(store)], vectorstore=store)
+
+
 def test_run_retrieval_eval_raises_when_collection_is_empty() -> None:
     store = _StubVectorStore({}, count=0)
     queries = [
@@ -55,7 +60,7 @@ def test_run_retrieval_eval_raises_when_collection_is_empty() -> None:
     ]
 
     with pytest.raises(EmptyVectorStoreError, match="empty"):
-        run_retrieval_eval(store, queries, top_k=3, dataset_name="test")
+        run_retrieval_eval(_stub_retriever(store), queries, top_k=3, dataset_name="test")
 
 
 def test_run_retrieval_eval_computes_metrics_from_vector_store() -> None:
@@ -81,7 +86,7 @@ def test_run_retrieval_eval_computes_metrics_from_vector_store() -> None:
         count=2,
     )
 
-    eval_run = run_retrieval_eval(store, queries, top_k=3, dataset_name="fixture")
+    eval_run = run_retrieval_eval(_stub_retriever(store), queries, top_k=3, dataset_name="fixture")
 
     assert eval_run.report.query_count == 2
     assert eval_run.report.hit_at_k == 1.0
@@ -92,9 +97,10 @@ def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> No
     chunks = chunk_markdown_dir(CORPUS_DIR)
     store = ChromaVectorStore(tmp_path / "chroma", "eval-fixture")
     store.upsert(chunks)
+    retriever = PipelineRetriever(stages=[SemanticStage(store)], vectorstore=store)
 
     queries = load_eval_dataset(EVAL_DATASET_PATH)
-    eval_run = run_retrieval_eval(store, queries, top_k=3, dataset_name="eval_dataset.jsonl")
+    eval_run = run_retrieval_eval(retriever, queries, top_k=3, dataset_name="eval_dataset.jsonl")
 
     assert eval_run.report.query_count == 2
     assert eval_run.report.hit_at_k == 1.0
@@ -112,7 +118,7 @@ def test_format_eval_summary_includes_tag_breakdown() -> None:
         },
         count=2,
     )
-    eval_run = run_retrieval_eval(store, queries, top_k=2, dataset_name="test.jsonl")
+    eval_run = run_retrieval_eval(_stub_retriever(store), queries, top_k=2, dataset_name="test.jsonl")
 
     summary = format_eval_summary(
         eval_run.report,
