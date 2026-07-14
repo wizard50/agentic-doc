@@ -16,6 +16,8 @@ def test_eval_settings_defaults(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     assert settings.top_k == 5
     assert settings.dataset_path.name == "rust_book.jsonl"
     assert settings.fail_under_hit_at_k is None
+    assert settings.llm_model == "gpt-4o-mini"
+    assert settings.llm_concurrency == 5
 
 
 def test_eval_settings_loads_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

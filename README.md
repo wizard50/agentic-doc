@@ -50,9 +50,26 @@ Retrieval quality is measured against a golden query dataset (`rust_book.jsonl`)
 uv run explorer eval
 uv run explorer eval --top-k 5 --output json
 uv run explorer eval --fail-under 0.75   # exit 1 if hit@k is below threshold
+
+# Optional LLM relevance scoring (requires LLM_API_KEY in .env)
+uv run explorer eval --llm
+PHOENIX_ENABLED=true uv run explorer eval --llm   # also uploads relevance annotations
 ```
 
-Configure defaults via `.env` (`EVAL_TOP_K`, `EVAL_DATASET_PATH`, `EVAL_FAIL_UNDER_HIT_AT_K`).
+Reports are saved by default to `data/eval/reports/` as timestamped JSON (`eval_20260710T120000Z.json`, `_llm` suffix when `--llm` is used). Override with `EVAL_REPORT_DIR` or `--report-dir`; use `--no-save` to skip.
+
+Configure via `.env`: `LLM_API_KEY` (credential), plus `EVAL_TOP_K`, `EVAL_REPORT_DIR`, `EVAL_DATASET_PATH`, `EVAL_FAIL_UNDER_HIT_AT_K`, `EVAL_LLM_MODEL`.
+
+**OpenRouter** (no OpenAI key needed — uses an OpenAI-compatible API):
+
+```bash
+# .env
+LLM_API_KEY=sk-or-v1-...
+LLM_BASE_URL=https://openrouter.ai/api/v1
+EVAL_LLM_MODEL=openai/gpt-4o-mini
+
+uv run explorer eval --llm --top-k 3   # start small; 17 queries × top-k LLM calls
+```
 
 ## Observability (Phoenix)
 

@@ -7,10 +7,13 @@ requires-python = ">=3.13"
 
 dependencies = [
     "agentic-doc-core",
+    "arize-phoenix-client>=2.12.0",
+    "arize-phoenix-evals>=3.1.0",
     "arize-phoenix-otel>=0.16.1",
     "chromadb>=1.5.9",
     "openinference-semantic-conventions>=0.1.30",
     "opentelemetry-api>=1.43.0",
+    "pandas>=2.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.14.2",
 ]

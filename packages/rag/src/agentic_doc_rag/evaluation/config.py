@@ -23,6 +23,17 @@ class EvalSettings(BaseSettings):
         default=None,
         description="Exit with failure when hit@k falls below this threshold",
     )
+    llm_provider: str = Field(default="openai", description="LLM provider for --llm eval mode")
+    llm_model: str = Field(default="gpt-4o-mini", description="LLM model for --llm eval mode")
+    llm_concurrency: int = Field(default=5, description="Concurrent LLM eval requests")
+    phoenix_client_url: str = Field(
+        default="http://localhost:6006",
+        description="Phoenix HTTP API used for annotation upload",
+    )
+    report_dir: Path = Field(
+        default=Path("data/eval/reports"),
+        description="Directory where eval JSON reports are saved",
+    )
 
 
 def get_eval_settings() -> EvalSettings:
