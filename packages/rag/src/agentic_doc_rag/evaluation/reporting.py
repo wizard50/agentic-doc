@@ -1,4 +1,4 @@
-from agentic_doc_rag.evaluation.models import EvalReport
+from agentic_doc_rag.evaluation.models import EvalReport, LlmEvalReport
 
 
 def _tag_hit_count(report: EvalReport, tag: str) -> int:
@@ -37,4 +37,25 @@ def format_eval_summary(
                 f"    {metric.tag:<16}  hit@{report.top_k}={metric.hit_at_k:.2f}  ({hits}/{metric.query_count})"
             )
 
+    return "\n".join(lines)
+
+
+def format_llm_eval_summary(
+    llm_report: LlmEvalReport,
+    *,
+    top_k: int,
+    upload_attempted: bool = False,
+) -> str:
+    """Format LLM relevance evaluation metrics."""
+    lines = [
+        "",
+        "  LLM relevance (DocumentRelevanceEvaluator)",
+        f"  {'model':<14}  {llm_report.model}",
+        f"  {'precision@' + str(top_k):<14}  {llm_report.precision_at_k:.4f}",
+        f"  {'llm_hit@' + str(top_k):<14}  {llm_report.llm_hit_at_k:.4f}",
+    ]
+    if llm_report.annotations_uploaded:
+        lines.append("  annotations     uploaded to Phoenix (relevance)")
+    elif upload_attempted:
+        lines.append("  annotations     not uploaded (see stderr)")
     return "\n".join(lines)

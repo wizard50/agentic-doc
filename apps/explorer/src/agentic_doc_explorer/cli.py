@@ -1,6 +1,8 @@
 import argparse
+import json
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from agentic_doc_core.config import get_phoenix_settings
@@ -10,10 +12,15 @@ from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
 from agentic_doc_rag.evaluation import (
     EmptyVectorStoreError,
+    LlmEvalError,
+    build_eval_payload,
     format_eval_summary,
+    format_llm_eval_summary,
     get_eval_settings,
     load_eval_dataset,
+    run_llm_relevance_eval,
     run_retrieval_eval,
+    save_eval_report,
 )
 from agentic_doc_rag.observability import register_tracing
 from agentic_doc_rag.vectorstore.factory import create_vector_store
@@ -63,12 +70,14 @@ def _run_eval(args: argparse.Namespace) -> None:
     fail_under = (
         args.fail_under if args.fail_under is not None else eval_settings.fail_under_hit_at_k
     )
+    report_dir = Path(args.report_dir) if args.report_dir else eval_settings.report_dir
+    save_report = not args.no_save
 
     queries = load_eval_dataset(dataset_path)
     vectorstore = create_vector_store(rag_settings)
 
     try:
-        report = run_retrieval_eval(
+        eval_run = run_retrieval_eval(
             vectorstore,
             queries,
             top_k=top_k,
@@ -78,17 +87,66 @@ def _run_eval(args: argparse.Namespace) -> None:
         print(exc, file=sys.stderr)
         sys.exit(1)
 
-    if args.output == "json":
-        print(report.model_dump_json(indent=2))
-    else:
-        print(
-            format_eval_summary(
-                report,
-                dataset_path=str(dataset_path),
-                collection_name=rag_settings.chroma_collection_name,
-                chunk_count=vectorstore.count(),
+    report = eval_run.report
+    llm_report = None
+    phoenix_settings = get_phoenix_settings()
+    if args.llm:
+        try:
+            llm_report = run_llm_relevance_eval(
+                eval_run,
+                queries,
+                eval_settings,
+                upload_annotations=phoenix_settings.enabled,
             )
+        except LlmEvalError as exc:
+            print(exc, file=sys.stderr)
+            sys.exit(1)
+        if (
+            phoenix_settings.enabled
+            and llm_report is not None
+            and not llm_report.annotations_uploaded
+        ):
+            print(
+                "Phoenix relevance annotations were not uploaded "
+                "(no matching retriever spans or upload failed).",
+                file=sys.stderr,
+            )
+
+    payload = build_eval_payload(
+        report,
+        llm_report=llm_report,
+        metadata={
+            "run_at": datetime.now(UTC).isoformat(),
+            "dataset": str(dataset_path),
+            "collection": rag_settings.chroma_collection_name,
+            "chunk_count": vectorstore.count(),
+            "top_k": top_k,
+            "llm_enabled": llm_report is not None,
+        },
+    )
+
+    saved_report_path: Path | None = None
+    if save_report:
+        saved_report_path = save_eval_report(payload, report_dir)
+
+    if args.output == "json":
+        print(json.dumps(payload, indent=2))
+    else:
+        summary = format_eval_summary(
+            report,
+            dataset_path=str(dataset_path),
+            collection_name=rag_settings.chroma_collection_name,
+            chunk_count=vectorstore.count(),
         )
+        if llm_report is not None:
+            summary += format_llm_eval_summary(
+                llm_report,
+                top_k=top_k,
+                upload_attempted=phoenix_settings.enabled,
+            )
+        if saved_report_path is not None:
+            summary += f"\n\n  Report saved to  {saved_report_path}"
+        print(summary)
 
     if fail_under is not None and report.hit_at_k < fail_under:
         print(
@@ -121,6 +179,20 @@ def main() -> None:
         "--fail-under",
         type=float,
         help="Exit with code 1 when hit@k is below this threshold",
+    )
+    eval_parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Run Phoenix DocumentRelevanceEvaluator (requires LLM_API_KEY)",
+    )
+    eval_parser.add_argument(
+        "--report-dir",
+        help="Directory to save the eval JSON report (default: EVAL_REPORT_DIR)",
+    )
+    eval_parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Skip writing the eval report to disk",
     )
 
     subparsers.add_parser("ui", help="Launch the Streamlit search UI")

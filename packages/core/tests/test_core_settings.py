@@ -41,6 +41,28 @@ def test_phoenix_loads_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     assert settings.project_name == "test-project"
 
 
+def test_core_settings_loads_llm_api_key_from_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("LLM_API_KEY", "test-llm-key")
+
+    settings = CoreSettings()
+
+    assert settings.llm_api_key == "test-llm-key"
+
+
+def test_core_settings_loads_llm_base_url_from_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
+
+    settings = CoreSettings()
+
+    assert settings.llm_base_url == "https://openrouter.ai/api/v1"
+
+
 def test_core_settings_exposes_phoenix(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PHOENIX_ENABLED", "true")

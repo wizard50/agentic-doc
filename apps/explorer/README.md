@@ -18,6 +18,7 @@ uv run explorer ui
 
 # run retrieval evaluation (requires ingest first)
 uv run explorer eval
+uv run explorer eval --llm   # optional LLM relevance scoring (LLM_API_KEY)
 ```
 
 ## Deploy (Streamlit Community Cloud)

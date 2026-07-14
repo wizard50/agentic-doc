@@ -3,6 +3,7 @@ from collections.abc import Callable
 from typing import Any
 
 from agentic_doc_rag.evaluation.models import EvalQuery, EvalReport, QueryEvalResult, TagMetrics
+from agentic_doc_rag.evaluation.utils import mean
 from agentic_doc_rag.models import SearchResult
 
 MetadataPredicate = Callable[[dict[str, Any]], bool]
@@ -107,10 +108,6 @@ def evaluate_query(
     )
 
 
-def _mean(values: list[float]) -> float:
-    return sum(values) / len(values) if values else 0.0
-
-
 def _mrr(results: list[QueryEvalResult]) -> float:
     if not results:
         return 0.0
@@ -118,7 +115,7 @@ def _mrr(results: list[QueryEvalResult]) -> float:
         1 / result.first_match_rank if result.first_match_rank is not None else 0.0
         for result in results
     ]
-    return _mean(reciprocal_ranks)
+    return mean(reciprocal_ranks)
 
 
 def _tag_metrics(results: list[QueryEvalResult]) -> list[TagMetrics]:
@@ -134,9 +131,9 @@ def _tag_metrics(results: list[QueryEvalResult]) -> list[TagMetrics]:
             TagMetrics(
                 tag=tag,
                 query_count=len(tag_results),
-                hit_at_k=_mean([float(result.hit_at_k) for result in tag_results]),
+                hit_at_k=mean([float(result.hit_at_k) for result in tag_results]),
                 mrr=_mrr(tag_results),
-                recall_at_k=_mean([result.recall_at_k for result in tag_results]),
+                recall_at_k=mean([result.recall_at_k for result in tag_results]),
             )
         )
     return metrics
@@ -163,11 +160,11 @@ def compute_report(
         dataset_name=dataset_name,
         query_count=len(queries),
         top_k=top_k,
-        hit_at_k=_mean([float(result.hit_at_k) for result in per_query_results]),
+        hit_at_k=mean([float(result.hit_at_k) for result in per_query_results]),
         mrr=_mrr(per_query_results),
-        recall_at_k=_mean([result.recall_at_k for result in per_query_results]),
-        source_match_at_k=_mean([float(result.source_hit_at_k) for result in per_query_results]),
-        section_match_at_k=_mean([float(result.section_hit_at_k) for result in per_query_results]),
+        recall_at_k=mean([result.recall_at_k for result in per_query_results]),
+        source_match_at_k=mean([float(result.source_hit_at_k) for result in per_query_results]),
+        section_match_at_k=mean([float(result.section_hit_at_k) for result in per_query_results]),
         by_tag=_tag_metrics(per_query_results),
         results=per_query_results,
     )

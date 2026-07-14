@@ -81,11 +81,11 @@ def test_run_retrieval_eval_computes_metrics_from_vector_store() -> None:
         count=2,
     )
 
-    report = run_retrieval_eval(store, queries, top_k=3, dataset_name="fixture")
+    eval_run = run_retrieval_eval(store, queries, top_k=3, dataset_name="fixture")
 
-    assert report.query_count == 2
-    assert report.hit_at_k == 1.0
-    assert report.mrr == 1.0
+    assert eval_run.report.query_count == 2
+    assert eval_run.report.hit_at_k == 1.0
+    assert eval_run.report.mrr == 1.0
 
 
 def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> None:
@@ -94,10 +94,10 @@ def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> No
     store.upsert(chunks)
 
     queries = load_eval_dataset(EVAL_DATASET_PATH)
-    report = run_retrieval_eval(store, queries, top_k=3, dataset_name="eval_dataset.jsonl")
+    eval_run = run_retrieval_eval(store, queries, top_k=3, dataset_name="eval_dataset.jsonl")
 
-    assert report.query_count == 2
-    assert report.hit_at_k == 1.0
+    assert eval_run.report.query_count == 2
+    assert eval_run.report.hit_at_k == 1.0
 
 
 def test_format_eval_summary_includes_tag_breakdown() -> None:
@@ -112,10 +112,10 @@ def test_format_eval_summary_includes_tag_breakdown() -> None:
         },
         count=2,
     )
-    report = run_retrieval_eval(store, queries, top_k=2, dataset_name="test.jsonl")
+    eval_run = run_retrieval_eval(store, queries, top_k=2, dataset_name="test.jsonl")
 
     summary = format_eval_summary(
-        report,
+        eval_run.report,
         dataset_path="test.jsonl",
         collection_name="fixture",
         chunk_count=2,

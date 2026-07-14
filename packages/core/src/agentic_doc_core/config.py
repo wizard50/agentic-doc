@@ -33,6 +33,14 @@ class CoreSettings(BaseSettings):
 
     environment: Environment = Field(default=Environment.DEV, description="Environment to run in")
     log_level: str = Field(default="INFO", description="Log level")
+    llm_api_key: str | None = Field(
+        default=None,
+        description="API key for LLM providers (OpenAI, OpenRouter, etc.)",
+    )
+    llm_base_url: str | None = Field(
+        default=None,
+        description="OpenAI-compatible API base URL (e.g. OpenRouter, Azure, local proxy)",
+    )
 
     @property
     def phoenix(self) -> PhoenixSettings:

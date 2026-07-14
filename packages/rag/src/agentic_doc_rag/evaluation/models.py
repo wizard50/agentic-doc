@@ -56,3 +56,25 @@ class EvalReport(BaseModel):
     section_match_at_k: float
     by_tag: list[TagMetrics] = Field(default_factory=list)
     results: list[QueryEvalResult] = Field(default_factory=list)
+
+
+class LlmRelevanceScore(BaseModel):
+    """LLM relevance judgment for a single retrieved document."""
+
+    query_id: str
+    query: str
+    document_position: int
+    score: float
+    label: str
+    explanation: str | None = None
+    span_id: str | None = None
+
+
+class LlmEvalReport(BaseModel):
+    """Aggregate LLM-based retrieval evaluation metrics."""
+
+    model: str
+    precision_at_k: float
+    llm_hit_at_k: float
+    scores: list[LlmRelevanceScore] = Field(default_factory=list)
+    annotations_uploaded: bool = False
