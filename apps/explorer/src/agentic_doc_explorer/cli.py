@@ -23,6 +23,7 @@ from agentic_doc_rag.evaluation import (
     save_eval_report,
 )
 from agentic_doc_rag.observability import register_tracing
+from agentic_doc_rag.retrieval import create_retriever
 from agentic_doc_rag.vectorstore.factory import create_vector_store
 
 
@@ -74,11 +75,11 @@ def _run_eval(args: argparse.Namespace) -> None:
     save_report = not args.no_save
 
     queries = load_eval_dataset(dataset_path)
-    vectorstore = create_vector_store(rag_settings)
+    retriever = create_retriever(rag_settings)
 
     try:
         eval_run = run_retrieval_eval(
-            vectorstore,
+            retriever,
             queries,
             top_k=top_k,
             dataset_name=dataset_path.name,
@@ -119,7 +120,7 @@ def _run_eval(args: argparse.Namespace) -> None:
             "run_at": datetime.now(UTC).isoformat(),
             "dataset": str(dataset_path),
             "collection": rag_settings.chroma_collection_name,
-            "chunk_count": vectorstore.count(),
+            "chunk_count": retriever.count(),
             "top_k": top_k,
             "llm_enabled": llm_report is not None,
         },
@@ -136,7 +137,7 @@ def _run_eval(args: argparse.Namespace) -> None:
             report,
             dataset_path=str(dataset_path),
             collection_name=rag_settings.chroma_collection_name,
-            chunk_count=vectorstore.count(),
+            chunk_count=retriever.count(),
         )
         if llm_report is not None:
             summary += format_llm_eval_summary(
