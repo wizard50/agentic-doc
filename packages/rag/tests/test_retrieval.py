@@ -3,9 +3,11 @@ from pathlib import Path
 from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.models import DocumentChunk, SearchResult
 from agentic_doc_rag.retrieval import (
+    MetadataFilterStage,
     PipelineRetriever,
     RetrievalRequest,
     RetrieveStage,
+    TopKStage,
     create_retriever,
 )
 from agentic_doc_rag.sparse.bm25 import Bm25Index
@@ -54,7 +56,14 @@ class _UnusedSparseIndex:
 
 
 def _pipeline_retriever(store: _StubVectorStore) -> PipelineRetriever:
-    return PipelineRetriever(stages=[RetrieveStage(store, _UnusedSparseIndex())], vectorstore=store)
+    return PipelineRetriever(
+        stages=[
+            RetrieveStage(store, _UnusedSparseIndex()),
+            MetadataFilterStage(),
+            TopKStage(),
+        ],
+        vectorstore=store,
+    )
 
 
 def test_pipeline_retriever_delegates_semantic_search() -> None:
@@ -64,7 +73,7 @@ def test_pipeline_retriever_delegates_semantic_search() -> None:
     results = retriever.retrieve(RetrievalRequest(query="ownership rules", top_k=3))
 
     assert len(results) == 1
-    assert store.search_calls == [("ownership rules", 3)]
+    assert store.search_calls == [("ownership rules", 20)]
 
 
 def test_pipeline_retriever_exposes_chunk_count() -> None:
@@ -80,7 +89,10 @@ def test_create_retriever_runs_fixture_corpus_search(tmp_path: Path) -> None:
 
     sparse = Bm25Index(tmp_path / "bm25")
     sparse.build(chunks)
-    retriever = PipelineRetriever(stages=[RetrieveStage(store, sparse)], vectorstore=store)
+    retriever = PipelineRetriever(
+        stages=[RetrieveStage(store, sparse), MetadataFilterStage(), TopKStage()],
+        vectorstore=store,
+    )
     results = retriever.retrieve(RetrievalRequest(query="ownership", top_k=2))
 
     assert results
