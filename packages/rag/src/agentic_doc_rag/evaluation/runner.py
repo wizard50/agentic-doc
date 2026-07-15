@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from agentic_doc_rag.evaluation.metrics import compute_report
 from agentic_doc_rag.evaluation.models import EvalQuery, EvalReport
 from agentic_doc_rag.models import SearchResult
-from agentic_doc_rag.retrieval.models import RetrievalRequest
+from agentic_doc_rag.retrieval.models import RetrievalRequest, SearchMode
 from agentic_doc_rag.retrieval.protocols import Retriever
 
 
@@ -24,6 +24,8 @@ def run_retrieval_eval(
     *,
     top_k: int,
     dataset_name: str,
+    search_mode: SearchMode = SearchMode.SEMANTIC,
+    candidate_k: int = 20,
 ) -> RetrievalEvalRun:
     """Run golden queries against a retriever and compute retrieval metrics."""
     if retriever.count() == 0:
@@ -31,7 +33,14 @@ def run_retrieval_eval(
         raise EmptyVectorStoreError(msg)
 
     results_by_query_id = {
-        query.id: retriever.retrieve(RetrievalRequest(query=query.query, top_k=top_k))
+        query.id: retriever.retrieve(
+            RetrievalRequest(
+                query=query.query,
+                top_k=top_k,
+                mode=search_mode,
+                candidate_k=candidate_k,
+            )
+        )
         for query in queries
     }
     report = compute_report(

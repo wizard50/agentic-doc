@@ -1,6 +1,13 @@
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+
+class SearchMode(StrEnum):
+    SEMANTIC = "semantic"
+    KEYWORD = "keyword"
+    HYBRID = "hybrid"
 
 
 class DocumentChunk(BaseModel):
