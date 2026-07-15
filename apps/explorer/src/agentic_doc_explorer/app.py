@@ -11,7 +11,7 @@ from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
 from agentic_doc_rag.models import SearchResult
 from agentic_doc_rag.observability import register_tracing
-from agentic_doc_rag.retrieval import RetrievalRequest, SearchMode, create_retriever
+from agentic_doc_rag.retrieval import MetadataFilter, RetrievalRequest, SearchMode, create_retriever
 
 register_tracing(get_phoenix_settings())
 require_workspace_root("explorer")
@@ -34,6 +34,21 @@ def _retriever():
 @st.cache_resource
 def _settings():
     return get_rag_settings()
+
+
+def _build_metadata_filter(
+    source_contains: str,
+    source_suffix: str,
+    section_path_contains: str,
+) -> MetadataFilter | None:
+    values = {
+        "source_contains": source_contains.strip() or None,
+        "source_suffix": source_suffix.strip() or None,
+        "section_path_contains": section_path_contains.strip() or None,
+    }
+    if not any(values.values()):
+        return None
+    return MetadataFilter(**values)
 
 
 def _render_hit(hit: SearchResult, index: int) -> None:
@@ -93,6 +108,15 @@ query_input = st.text_input(
 )
 query = query_input or ""
 
+with st.expander("Metadata filters", expanded=False):
+    filter_cols = st.columns(3)
+    with filter_cols[0]:
+        source_contains = st.text_input("Source contains")
+    with filter_cols[1]:
+        source_suffix = st.text_input("Source suffix")
+    with filter_cols[2]:
+        section_path_contains = st.text_input("Section contains")
+
 if st.button("Search", type="primary"):
     st.session_state["run_search"] = True
 
@@ -107,6 +131,11 @@ if st.session_state.get("run_search"):
                     top_k=top_k,
                     mode=search_mode,
                     candidate_k=settings.candidate_k,
+                    filters=_build_metadata_filter(
+                        source_contains,
+                        source_suffix,
+                        section_path_contains,
+                    ),
                 )
             )
 
