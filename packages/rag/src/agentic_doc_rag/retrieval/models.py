@@ -1,12 +1,8 @@
-from enum import StrEnum
-
 from pydantic import BaseModel, Field
 
+from agentic_doc_rag.models import SearchMode
 
-class SearchMode(StrEnum):
-    SEMANTIC = "semantic"
-    KEYWORD = "keyword"
-    HYBRID = "hybrid"
+__all__ = ["RetrievalRequest", "SearchMode"]
 
 
 class RetrievalRequest(BaseModel):

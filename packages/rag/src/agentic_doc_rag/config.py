@@ -4,6 +4,8 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from agentic_doc_rag.models import SearchMode
+
 
 class VectorStoreType(StrEnum):
     CHROMA = "chroma"
@@ -24,6 +26,15 @@ class RagSettings(BaseSettings):
     )
     bm25_persist_dir: Path = Field(
         default=Path("data/bm25"), description="Directory to persist the BM25 sparse index"
+    )
+    search_mode: SearchMode = Field(
+        default=SearchMode.SEMANTIC,
+        description="Default retrieval mode (semantic, keyword, or hybrid)",
+    )
+    candidate_k: int = Field(
+        default=20,
+        ge=1,
+        description="Prefetch size for hybrid search before fusion",
     )
 
 

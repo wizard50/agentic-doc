@@ -23,7 +23,7 @@ from agentic_doc_rag.evaluation import (
     save_eval_report,
 )
 from agentic_doc_rag.observability import register_tracing
-from agentic_doc_rag.retrieval import create_retriever
+from agentic_doc_rag.retrieval import SearchMode, create_retriever
 from agentic_doc_rag.sparse import create_sparse_index
 from agentic_doc_rag.vectorstore.factory import create_vector_store
 
@@ -78,6 +78,10 @@ def _run_eval(args: argparse.Namespace) -> None:
     )
     report_dir = Path(args.report_dir) if args.report_dir else eval_settings.report_dir
     save_report = not args.no_save
+    search_mode = (
+        SearchMode(args.search_mode) if args.search_mode is not None else rag_settings.search_mode
+    )
+    candidate_k = rag_settings.candidate_k
 
     queries = load_eval_dataset(dataset_path)
     retriever = create_retriever(rag_settings)
@@ -88,6 +92,8 @@ def _run_eval(args: argparse.Namespace) -> None:
             queries,
             top_k=top_k,
             dataset_name=dataset_path.name,
+            search_mode=search_mode,
+            candidate_k=candidate_k,
         )
     except EmptyVectorStoreError as exc:
         print(exc, file=sys.stderr)
@@ -127,6 +133,8 @@ def _run_eval(args: argparse.Namespace) -> None:
             "collection": rag_settings.chroma_collection_name,
             "chunk_count": retriever.count(),
             "top_k": top_k,
+            "candidate_k": candidate_k,
+            "search_mode": search_mode.value,
             "llm_enabled": llm_report is not None,
         },
     )
@@ -175,6 +183,11 @@ def main() -> None:
     eval_parser = subparsers.add_parser("eval", help="Run retrieval evaluation against the index")
     eval_parser.add_argument("--dataset", help="Path to golden dataset JSONL")
     eval_parser.add_argument("--top-k", type=int, help="Number of results to retrieve per query")
+    eval_parser.add_argument(
+        "--search-mode",
+        choices=[mode.value for mode in SearchMode],
+        help="Retrieval mode (default: SEARCH_MODE from settings)",
+    )
     eval_parser.add_argument(
         "--output",
         choices=["text", "json"],

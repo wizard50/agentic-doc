@@ -11,7 +11,7 @@ from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
 from agentic_doc_rag.models import SearchResult
 from agentic_doc_rag.observability import register_tracing
-from agentic_doc_rag.retrieval import RetrievalRequest, create_retriever
+from agentic_doc_rag.retrieval import RetrievalRequest, SearchMode, create_retriever
 
 register_tracing(get_phoenix_settings())
 require_workspace_root("explorer")
@@ -61,6 +61,12 @@ with st.sidebar:
     st.text(f"Collection: {settings.chroma_collection_name}")
     st.text(f"Store: {settings.chroma_persist_dir}")
     top_k = st.slider("Results (top-k)", min_value=1, max_value=10, value=DEFAULT_TOP_K)
+    search_mode = st.selectbox(
+        "Search mode",
+        options=list(SearchMode),
+        format_func=lambda mode: mode.value,
+        index=list(SearchMode).index(settings.search_mode),
+    )
 
     if phoenix_settings.enabled:
         st.divider()
@@ -95,10 +101,22 @@ if st.session_state.get("run_search"):
         st.info("Enter a question to search.")
     else:
         with st.spinner("Searching..."):
-            hits = retriever.retrieve(RetrievalRequest(query=query.strip(), top_k=top_k))
+            hits = retriever.retrieve(
+                RetrievalRequest(
+                    query=query.strip(),
+                    top_k=top_k,
+                    mode=search_mode,
+                    candidate_k=settings.candidate_k,
+                )
+            )
 
         st.subheader("Results")
-        st.caption("Lower score = closer match (Chroma distance)")
+        score_caption = {
+            SearchMode.SEMANTIC: "Lower score = closer match (Chroma distance)",
+            SearchMode.KEYWORD: "Higher score = stronger BM25 match",
+            SearchMode.HYBRID: "Higher score = stronger fused rank (RRF)",
+        }[search_mode]
+        st.caption(score_caption)
         if not hits:
             st.info("No results found.")
         else:

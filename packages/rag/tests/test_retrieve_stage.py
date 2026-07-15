@@ -1,5 +1,3 @@
-import pytest
-
 from agentic_doc_rag.models import DocumentChunk, SearchResult
 from agentic_doc_rag.retrieval import PipelineRetriever, RetrievalRequest, SearchMode
 from agentic_doc_rag.retrieval.retrieve import RetrieveStage
@@ -67,10 +65,29 @@ def test_retrieve_stage_uses_keyword_backend() -> None:
     assert store.search_calls == []
 
 
-def test_retrieve_stage_rejects_hybrid_mode() -> None:
+def test_retrieve_stage_hybrid_queries_both_backends_with_candidate_k() -> None:
     store = _StubVectorStore()
     sparse = _StubSparseIndex()
     retriever = _retriever(store, sparse)
 
-    with pytest.raises(NotImplementedError, match="hybrid"):
-        retriever.retrieve(RetrievalRequest(query="ownership", mode=SearchMode.HYBRID, top_k=3))
+    results = retriever.retrieve(
+        RetrievalRequest(query="ownership", mode=SearchMode.HYBRID, top_k=2, candidate_k=10)
+    )
+
+    assert store.search_calls == [("ownership", 10)]
+    assert sparse.search_calls == [("ownership", 10)]
+    assert {result.chunk.id for result in results} == {"dense-1", "sparse-1"}
+    assert all(result.score > 0 for result in results)
+
+
+def test_retrieve_stage_hybrid_uses_top_k_when_larger_than_candidate_k() -> None:
+    store = _StubVectorStore()
+    sparse = _StubSparseIndex()
+    retriever = _retriever(store, sparse)
+
+    retriever.retrieve(
+        RetrievalRequest(query="ownership", mode=SearchMode.HYBRID, top_k=8, candidate_k=3)
+    )
+
+    assert store.search_calls == [("ownership", 8)]
+    assert sparse.search_calls == [("ownership", 8)]
