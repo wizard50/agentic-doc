@@ -24,6 +24,7 @@ from agentic_doc_rag.evaluation import (
 )
 from agentic_doc_rag.observability import register_tracing
 from agentic_doc_rag.retrieval import create_retriever
+from agentic_doc_rag.sparse import create_sparse_index
 from agentic_doc_rag.vectorstore.factory import create_vector_store
 
 
@@ -31,14 +32,18 @@ def _run_ingest() -> None:
     require_workspace_root("ingest")
     rag_settings = get_rag_settings()
     vectorstore = create_vector_store(rag_settings)
-    run_ingestion(RUST_BOOK_SRC, vectorstore, RUST_BOOK_SKIP)
+    sparse_index = create_sparse_index(rag_settings)
+    run_ingestion(RUST_BOOK_SRC, vectorstore, sparse_index, RUST_BOOK_SKIP)
 
     document_count = vectorstore.count()
+    sparse_count = sparse_index.count()
     details = {
         "Vector store": rag_settings.vector_store_type.value,
         "Collection": rag_settings.chroma_collection_name,
         "Persist dir": str(rag_settings.chroma_persist_dir),
-        "Documents": str(document_count),
+        "BM25 dir": str(rag_settings.bm25_persist_dir),
+        "Chunks (vector)": str(document_count),
+        "Chunks (BM25)": str(sparse_count),
     }
     label_width = max(len(label) for label in details)
 

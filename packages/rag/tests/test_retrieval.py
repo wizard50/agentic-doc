@@ -1,16 +1,14 @@
 from pathlib import Path
 
-import pytest
-
 from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.models import DocumentChunk, SearchResult
 from agentic_doc_rag.retrieval import (
     PipelineRetriever,
     RetrievalRequest,
-    SearchMode,
-    SemanticStage,
+    RetrieveStage,
     create_retriever,
 )
+from agentic_doc_rag.sparse.bm25 import Bm25Index
 from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -44,8 +42,19 @@ def _search_result(chunk_id: str, source: str) -> SearchResult:
     )
 
 
+class _UnusedSparseIndex:
+    def build(self, chunks: list[DocumentChunk]) -> None:
+        raise NotImplementedError
+
+    def search(self, query: str, k: int) -> list[SearchResult]:
+        raise AssertionError("sparse search should not be called")
+
+    def count(self) -> int:
+        return 0
+
+
 def _pipeline_retriever(store: _StubVectorStore) -> PipelineRetriever:
-    return PipelineRetriever(stages=[SemanticStage(store)], vectorstore=store)
+    return PipelineRetriever(stages=[RetrieveStage(store, _UnusedSparseIndex())], vectorstore=store)
 
 
 def test_pipeline_retriever_delegates_semantic_search() -> None:
@@ -64,20 +73,14 @@ def test_pipeline_retriever_exposes_chunk_count() -> None:
     assert retriever.count() == 7
 
 
-def test_semantic_stage_rejects_unimplemented_modes() -> None:
-    store = _StubVectorStore({}, count=1)
-    retriever = _pipeline_retriever(store)
-
-    with pytest.raises(NotImplementedError, match="hybrid"):
-        retriever.retrieve(RetrievalRequest(query="ownership", mode=SearchMode.HYBRID, top_k=3))
-
-
 def test_create_retriever_runs_fixture_corpus_search(tmp_path: Path) -> None:
     chunks = chunk_markdown_dir(CORPUS_DIR)
     store = ChromaVectorStore(tmp_path / "chroma", "retrieval-fixture")
     store.upsert(chunks)
 
-    retriever = PipelineRetriever(stages=[SemanticStage(store)], vectorstore=store)
+    sparse = Bm25Index(tmp_path / "bm25")
+    sparse.build(chunks)
+    retriever = PipelineRetriever(stages=[RetrieveStage(store, sparse)], vectorstore=store)
     results = retriever.retrieve(RetrievalRequest(query="ownership", top_k=2))
 
     assert results
@@ -87,7 +90,11 @@ def test_create_retriever_runs_fixture_corpus_search(tmp_path: Path) -> None:
 def test_create_retriever_factory_builds_pipeline(tmp_path: Path) -> None:
     from agentic_doc_rag.config import RagSettings
 
-    settings = RagSettings(chroma_persist_dir=tmp_path / "chroma", chroma_collection_name="factory")
+    settings = RagSettings(
+        chroma_persist_dir=tmp_path / "chroma",
+        chroma_collection_name="factory",
+        bm25_persist_dir=tmp_path / "bm25",
+    )
     retriever = create_retriever(settings)
 
     assert retriever.count() == 0
