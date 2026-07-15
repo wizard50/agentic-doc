@@ -8,7 +8,8 @@ from agentic_doc_rag.evaluation.models import EvalQuery
 from agentic_doc_rag.evaluation.reporting import format_eval_summary
 from agentic_doc_rag.evaluation.runner import EmptyVectorStoreError, run_retrieval_eval
 from agentic_doc_rag.models import DocumentChunk, SearchResult
-from agentic_doc_rag.retrieval import PipelineRetriever, SemanticStage
+from agentic_doc_rag.retrieval import PipelineRetriever, RetrieveStage
+from agentic_doc_rag.sparse.bm25 import Bm25Index
 from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -45,8 +46,19 @@ def _search_result(chunk_id: str, source: str) -> SearchResult:
     )
 
 
+class _UnusedSparseIndex:
+    def build(self, chunks: list[DocumentChunk]) -> None:
+        raise NotImplementedError
+
+    def search(self, query: str, k: int) -> list[SearchResult]:
+        raise AssertionError("sparse search should not be called")
+
+    def count(self) -> int:
+        return 0
+
+
 def _stub_retriever(store: _StubVectorStore) -> PipelineRetriever:
-    return PipelineRetriever(stages=[SemanticStage(store)], vectorstore=store)
+    return PipelineRetriever(stages=[RetrieveStage(store, _UnusedSparseIndex())], vectorstore=store)
 
 
 def test_run_retrieval_eval_raises_when_collection_is_empty() -> None:
@@ -97,7 +109,9 @@ def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> No
     chunks = chunk_markdown_dir(CORPUS_DIR)
     store = ChromaVectorStore(tmp_path / "chroma", "eval-fixture")
     store.upsert(chunks)
-    retriever = PipelineRetriever(stages=[SemanticStage(store)], vectorstore=store)
+    sparse = Bm25Index(tmp_path / "bm25")
+    sparse.build(chunks)
+    retriever = PipelineRetriever(stages=[RetrieveStage(store, sparse)], vectorstore=store)
 
     queries = load_eval_dataset(EVAL_DATASET_PATH)
     eval_run = run_retrieval_eval(retriever, queries, top_k=3, dataset_name="eval_dataset.jsonl")

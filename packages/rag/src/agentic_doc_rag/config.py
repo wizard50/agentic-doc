@@ -22,6 +22,9 @@ class RagSettings(BaseSettings):
     chroma_collection_name: str = Field(
         default="rust_book", description="Name of the Chroma collection"
     )
+    bm25_persist_dir: Path = Field(
+        default=Path("data/bm25"), description="Directory to persist the BM25 sparse index"
+    )
 
 
 def get_rag_settings() -> RagSettings:
