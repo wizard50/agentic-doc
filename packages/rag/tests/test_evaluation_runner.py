@@ -5,6 +5,7 @@ from support.builders import search_result
 from support.fakes import StubVectorStore
 from support.paths import CORPUS_DIR, EVAL_DATASET_PATH
 from support.pipelines import indexed_pipeline_retriever, semantic_pipeline_retriever
+from support.vectorstore import chroma_vector_store
 
 from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.evaluation.dataset import load_eval_dataset
@@ -12,7 +13,6 @@ from agentic_doc_rag.evaluation.models import EvalQuery
 from agentic_doc_rag.evaluation.reporting import format_eval_summary
 from agentic_doc_rag.evaluation.runner import EmptyVectorStoreError, run_retrieval_eval
 from agentic_doc_rag.sparse.bm25 import Bm25Index
-from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
 
 
 def test_run_retrieval_eval_raises_when_collection_is_empty() -> None:
@@ -66,7 +66,7 @@ def test_run_retrieval_eval_computes_metrics_from_vector_store() -> None:
 
 def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> None:
     chunks = chunk_markdown_dir(CORPUS_DIR)
-    store = ChromaVectorStore(tmp_path / "chroma", "eval-fixture")
+    store = chroma_vector_store(tmp_path / "chroma", "eval-fixture")
     store.upsert(chunks)
     sparse = Bm25Index(tmp_path / "bm25")
     sparse.build(chunks)

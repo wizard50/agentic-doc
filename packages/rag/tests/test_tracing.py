@@ -8,8 +8,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from phoenix.trace.attributes import unflatten
-
-from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
+from support.vectorstore import chroma_vector_store
 
 
 @pytest.fixture
@@ -43,7 +42,7 @@ def test_chroma_upsert_and_search_emit_spans(
 ) -> None:
     from agentic_doc_rag.models import DocumentChunk
 
-    store = ChromaVectorStore(tmp_path / "chroma", "test")
+    store = chroma_vector_store(tmp_path / "chroma", "test")
     chunks = [
         DocumentChunk(id="1", text="ownership in Rust", metadata={"source": "book.md"}),
         DocumentChunk(id="2", text="borrowing rules", metadata={"source": "book.md"}),
@@ -53,9 +52,14 @@ def test_chroma_upsert_and_search_emit_spans(
     store.search("ownership", k=1)
 
     spans = span_exporter.get_finished_spans()
-    assert [span.name for span in spans] == ["vectorstore.upsert", "vectorstore.search"]
-    upsert_attributes = spans[0].attributes
-    search_attributes = spans[1].attributes
+    assert [span.name for span in spans] == [
+        "embeddings.embed",
+        "vectorstore.upsert",
+        "embeddings.embed",
+        "vectorstore.search",
+    ]
+    upsert_attributes = spans[1].attributes
+    search_attributes = spans[3].attributes
     assert upsert_attributes is not None
     assert search_attributes is not None
     assert upsert_attributes["chunk_count"] == 2

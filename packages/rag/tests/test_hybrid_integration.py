@@ -2,16 +2,16 @@ from pathlib import Path
 
 from support.paths import CORPUS_DIR
 from support.pipelines import indexed_pipeline_retriever
+from support.vectorstore import chroma_vector_store
 
 from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.retrieval import MetadataFilter, RetrievalRequest, SearchMode
 from agentic_doc_rag.sparse.bm25 import Bm25Index
-from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
 
 
 def test_hybrid_search_surfaces_borrowing_section(tmp_path: Path) -> None:
     chunks = chunk_markdown_dir(CORPUS_DIR)
-    store = ChromaVectorStore(tmp_path / "chroma", "hybrid-fixture")
+    store = chroma_vector_store(tmp_path / "chroma", "hybrid-fixture")
     store.upsert(chunks)
     sparse = Bm25Index(tmp_path / "bm25")
     sparse.build(chunks)
@@ -27,7 +27,7 @@ def test_hybrid_search_surfaces_borrowing_section(tmp_path: Path) -> None:
 
 def test_hybrid_search_with_source_filter_limits_results(tmp_path: Path) -> None:
     chunks = chunk_markdown_dir(CORPUS_DIR)
-    store = ChromaVectorStore(tmp_path / "chroma", "hybrid-filter-fixture")
+    store = chroma_vector_store(tmp_path / "chroma", "hybrid-filter-fixture")
     store.upsert(chunks)
     sparse = Bm25Index(tmp_path / "bm25")
     sparse.build(chunks)
