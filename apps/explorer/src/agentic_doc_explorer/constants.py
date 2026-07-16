@@ -1,7 +1,10 @@
-from pathlib import Path
+from agentic_doc_rag.config import RagSettings
+from agentic_doc_rag.ingest import ingest_settings_from_rag
 
-RUST_BOOK_SRC = Path("data/download/rust-book/src")
-RUST_BOOK_SKIP = frozenset({"SUMMARY.md", "title-page.md"})
+_DEFAULT_INGEST = ingest_settings_from_rag(RagSettings())
+
+RUST_BOOK_SRC = _DEFAULT_INGEST.source_dir
+RUST_BOOK_SKIP = _DEFAULT_INGEST.skip_files
 
 DEFAULT_TOP_K = 5
 PREVIEW_LENGTH = 400

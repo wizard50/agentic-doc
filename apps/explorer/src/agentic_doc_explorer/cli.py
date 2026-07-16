@@ -6,8 +6,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from agentic_doc_core.config import get_phoenix_settings
-from agentic_doc_explorer.constants import RUST_BOOK_SKIP, RUST_BOOK_SRC
-from agentic_doc_explorer.pipeline import run_ingestion
 from agentic_doc_explorer.workspace import require_workspace_root
 from agentic_doc_rag.config import get_rag_settings
 from agentic_doc_rag.evaluation import (
@@ -22,6 +20,11 @@ from agentic_doc_rag.evaluation import (
     run_retrieval_eval,
     save_eval_report,
 )
+from agentic_doc_rag.ingest import (
+    IngestSourceNotFoundError,
+    ingest_settings_from_rag,
+    run_ingestion,
+)
 from agentic_doc_rag.observability import register_tracing
 from agentic_doc_rag.retrieval import SearchMode, create_retriever
 from agentic_doc_rag.sparse import create_sparse_index
@@ -33,7 +36,12 @@ def _run_ingest() -> None:
     rag_settings = get_rag_settings()
     vectorstore = create_vector_store(rag_settings)
     sparse_index = create_sparse_index(rag_settings)
-    run_ingestion(RUST_BOOK_SRC, vectorstore, sparse_index, RUST_BOOK_SKIP)
+    ingest_settings = ingest_settings_from_rag(rag_settings)
+    try:
+        result = run_ingestion(vectorstore, sparse_index, ingest_settings)
+    except IngestSourceNotFoundError as exc:
+        print(exc, file=sys.stderr)
+        sys.exit(1)
 
     document_count = vectorstore.count()
     sparse_count = sparse_index.count()
@@ -42,8 +50,10 @@ def _run_ingest() -> None:
         "Collection": rag_settings.chroma_collection_name,
         "Persist dir": str(rag_settings.chroma_persist_dir),
         "BM25 dir": str(rag_settings.bm25_persist_dir),
+        "Source": str(ingest_settings.source_dir),
         "Chunks (vector)": str(document_count),
         "Chunks (BM25)": str(sparse_count),
+        "Files indexed": str(result.file_count),
     }
     label_width = max(len(label) for label in details)
 
@@ -54,7 +64,7 @@ def _run_ingest() -> None:
 
     if document_count == 0:
         print(
-            f"\n  No documents indexed. Check that the source directory exists:\n  {RUST_BOOK_SRC.resolve()}"
+            f"\n  No documents indexed. Check that the source directory exists:\n  {ingest_settings.source_dir.resolve()}"
         )
 
 
