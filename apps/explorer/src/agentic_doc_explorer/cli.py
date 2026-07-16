@@ -22,7 +22,7 @@ from agentic_doc_rag.evaluation import (
 )
 from agentic_doc_rag.ingest import (
     IngestSourceNotFoundError,
-    ingest_settings_from_rag,
+    resolve_ingest_settings,
     run_ingestion,
 )
 from agentic_doc_rag.observability import register_tracing
@@ -31,12 +31,16 @@ from agentic_doc_rag.sparse import create_sparse_index
 from agentic_doc_rag.vectorstore.factory import create_vector_store
 
 
-def _run_ingest() -> None:
+def _run_ingest(args: argparse.Namespace) -> None:
     require_workspace_root("ingest")
     rag_settings = get_rag_settings()
     vectorstore = create_vector_store(rag_settings)
     sparse_index = create_sparse_index(rag_settings)
-    ingest_settings = ingest_settings_from_rag(rag_settings)
+    ingest_settings = resolve_ingest_settings(
+        rag_settings,
+        source_dir=args.source,
+        skip_files=frozenset(args.skip) if args.skip is not None else None,
+    )
     try:
         result = run_ingestion(vectorstore, sparse_index, ingest_settings)
     except IngestSourceNotFoundError as exc:
@@ -191,7 +195,19 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("ingest", help="Index markdown files into the vector store")
+    ingest_parser = subparsers.add_parser("ingest", help="Index markdown files into the vector store")
+    ingest_parser.add_argument(
+        "--source",
+        type=Path,
+        help="Markdown root directory (default: INGEST_SOURCE_DIR)",
+    )
+    ingest_parser.add_argument(
+        "--skip",
+        action="append",
+        default=None,
+        metavar="FILE",
+        help="Skip filename (repeatable; replaces INGEST_SKIP_FILES when set)",
+    )
 
     eval_parser = subparsers.add_parser("eval", help="Run retrieval evaluation against the index")
     eval_parser.add_argument("--dataset", help="Path to golden dataset JSONL")
@@ -237,7 +253,7 @@ def main() -> None:
     args = parser.parse_args()
     match args.command:
         case "ingest":
-            _run_ingest()
+            _run_ingest(args)
         case "eval":
             _run_eval(args)
         case "ui" | None:
