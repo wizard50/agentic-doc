@@ -1,12 +1,10 @@
 from pathlib import Path
 
 import pytest
+from support.paths import CORPUS_DIR
 
 from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.sparse.bm25 import Bm25Index
-
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
-CORPUS_DIR = FIXTURES_DIR / "corpus"
 
 
 def test_bm25_search_ranks_borrowing_chunk_first(tmp_path: Path) -> None:

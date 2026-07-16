@@ -4,18 +4,22 @@ from agentic_doc_rag.retrieval.filters import MetadataFilterStage
 from agentic_doc_rag.retrieval.models import MetadataFilter, RetrievalRequest
 from agentic_doc_rag.retrieval.pipeline import PipelineRetriever
 from agentic_doc_rag.retrieval.protocols import RetrievalStage, Retriever
+from agentic_doc_rag.retrieval.rerank import CrossEncoderReranker, RerankStage, create_reranker
 from agentic_doc_rag.retrieval.retrieve import RetrieveStage
 from agentic_doc_rag.retrieval.topk import TopKStage
 
 __all__ = [
+    "CrossEncoderReranker",
     "MetadataFilter",
     "MetadataFilterStage",
     "PipelineRetriever",
+    "RerankStage",
     "RetrievalRequest",
     "RetrievalStage",
     "RetrieveStage",
     "Retriever",
     "SearchMode",
     "TopKStage",
+    "create_reranker",
     "create_retriever",
 ]

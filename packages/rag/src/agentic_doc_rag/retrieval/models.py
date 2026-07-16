@@ -23,3 +23,4 @@ class RetrievalRequest(BaseModel):
     top_k: int = Field(default=5, ge=1)
     candidate_k: int = Field(default=20, ge=1)
     filters: MetadataFilter | None = None
+    rerank: bool | None = None

@@ -1,80 +1,22 @@
 from pathlib import Path
 
 import pytest
+from support.builders import search_result
+from support.fakes import StubVectorStore
+from support.paths import CORPUS_DIR, EVAL_DATASET_PATH
+from support.pipelines import indexed_pipeline_retriever, semantic_pipeline_retriever
 
 from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.evaluation.dataset import load_eval_dataset
 from agentic_doc_rag.evaluation.models import EvalQuery
 from agentic_doc_rag.evaluation.reporting import format_eval_summary
 from agentic_doc_rag.evaluation.runner import EmptyVectorStoreError, run_retrieval_eval
-from agentic_doc_rag.models import DocumentChunk, SearchResult
-from agentic_doc_rag.retrieval import (
-    MetadataFilterStage,
-    PipelineRetriever,
-    RetrieveStage,
-    TopKStage,
-)
 from agentic_doc_rag.sparse.bm25 import Bm25Index
 from agentic_doc_rag.vectorstore.chroma import ChromaVectorStore
 
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
-CORPUS_DIR = FIXTURES_DIR / "corpus"
-EVAL_DATASET_PATH = FIXTURES_DIR / "eval_dataset.jsonl"
-
-
-class _StubVectorStore:
-    def __init__(self, responses: dict[str, list[SearchResult]], *, count: int) -> None:
-        self._responses = responses
-        self._count = count
-
-    def upsert(self, chunks: list[DocumentChunk]) -> None:
-        raise NotImplementedError
-
-    def search(self, query: str, k: int) -> list[SearchResult]:
-        del k
-        for eval_query, results in self._responses.items():
-            if eval_query in query or query in eval_query:
-                return results
-        return next(iter(self._responses.values()), [])
-
-    def delete(self, ids: list[str]) -> None:
-        raise NotImplementedError
-
-    def count(self) -> int:
-        return self._count
-
-
-def _search_result(chunk_id: str, source: str) -> SearchResult:
-    return SearchResult(
-        chunk=DocumentChunk(id=chunk_id, text="example", metadata={"source": source}),
-        score=0.1,
-    )
-
-
-class _UnusedSparseIndex:
-    def build(self, chunks: list[DocumentChunk]) -> None:
-        raise NotImplementedError
-
-    def search(self, query: str, k: int) -> list[SearchResult]:
-        raise AssertionError("sparse search should not be called")
-
-    def count(self) -> int:
-        return 0
-
-
-def _stub_retriever(store: _StubVectorStore) -> PipelineRetriever:
-    return PipelineRetriever(
-        stages=[
-            RetrieveStage(store, _UnusedSparseIndex()),
-            MetadataFilterStage(),
-            TopKStage(),
-        ],
-        vectorstore=store,
-    )
-
 
 def test_run_retrieval_eval_raises_when_collection_is_empty() -> None:
-    store = _StubVectorStore({}, count=0)
+    store = StubVectorStore(count=0)
     queries = [
         EvalQuery(
             id="q1",
@@ -84,7 +26,9 @@ def test_run_retrieval_eval_raises_when_collection_is_empty() -> None:
     ]
 
     with pytest.raises(EmptyVectorStoreError, match="empty"):
-        run_retrieval_eval(_stub_retriever(store), queries, top_k=3, dataset_name="test")
+        run_retrieval_eval(
+            semantic_pipeline_retriever(store), queries, top_k=3, dataset_name="test"
+        )
 
 
 def test_run_retrieval_eval_computes_metrics_from_vector_store() -> None:
@@ -102,15 +46,18 @@ def test_run_retrieval_eval_computes_metrics_from_vector_store() -> None:
             tags=["borrowing"],
         ),
     ]
-    store = _StubVectorStore(
+    store = StubVectorStore(
         {
-            "What is ownership in Rust?": [_search_result("1", "ownership.md")],
-            "What is borrowing in Rust?": [_search_result("2", "borrowing.md")],
+            "What is ownership in Rust?": [search_result("1", "ownership.md")],
+            "What is borrowing in Rust?": [search_result("2", "borrowing.md")],
         },
         count=2,
+        match="contains",
     )
 
-    eval_run = run_retrieval_eval(_stub_retriever(store), queries, top_k=3, dataset_name="fixture")
+    eval_run = run_retrieval_eval(
+        semantic_pipeline_retriever(store), queries, top_k=3, dataset_name="fixture"
+    )
 
     assert eval_run.report.query_count == 2
     assert eval_run.report.hit_at_k == 1.0
@@ -123,10 +70,7 @@ def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> No
     store.upsert(chunks)
     sparse = Bm25Index(tmp_path / "bm25")
     sparse.build(chunks)
-    retriever = PipelineRetriever(
-        stages=[RetrieveStage(store, sparse), MetadataFilterStage(), TopKStage()],
-        vectorstore=store,
-    )
+    retriever = indexed_pipeline_retriever(store, sparse)
 
     queries = load_eval_dataset(EVAL_DATASET_PATH)
     eval_run = run_retrieval_eval(retriever, queries, top_k=3, dataset_name="eval_dataset.jsonl")
@@ -137,17 +81,22 @@ def test_run_retrieval_eval_against_indexed_fixture_corpus(tmp_path: Path) -> No
 
 def test_format_eval_summary_includes_tag_breakdown() -> None:
     queries = [
-        EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"], tags=["ownership"]),
+        EvalQuery(
+            id="q1", query="ownership", expected_sources=["ownership.md"], tags=["ownership"]
+        ),
         EvalQuery(id="q2", query="traits", expected_sources=["traits.md"], tags=["traits"]),
     ]
-    store = _StubVectorStore(
+    store = StubVectorStore(
         {
-            "ownership": [_search_result("1", "ownership.md")],
-            "traits": [_search_result("2", "other.md")],
+            "ownership": [search_result("1", "ownership.md")],
+            "traits": [search_result("2", "other.md")],
         },
         count=2,
+        match="contains",
     )
-    eval_run = run_retrieval_eval(_stub_retriever(store), queries, top_k=2, dataset_name="test.jsonl")
+    eval_run = run_retrieval_eval(
+        semantic_pipeline_retriever(store), queries, top_k=2, dataset_name="test.jsonl"
+    )
 
     summary = format_eval_summary(
         eval_run.report,

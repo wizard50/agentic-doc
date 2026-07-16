@@ -82,6 +82,7 @@ def _run_eval(args: argparse.Namespace) -> None:
         SearchMode(args.search_mode) if args.search_mode is not None else rag_settings.search_mode
     )
     candidate_k = rag_settings.candidate_k
+    rerank = True if args.rerank else None
 
     queries = load_eval_dataset(dataset_path)
     retriever = create_retriever(rag_settings)
@@ -94,6 +95,7 @@ def _run_eval(args: argparse.Namespace) -> None:
             dataset_name=dataset_path.name,
             search_mode=search_mode,
             candidate_k=candidate_k,
+            rerank=rerank,
         )
     except EmptyVectorStoreError as exc:
         print(exc, file=sys.stderr)
@@ -135,6 +137,7 @@ def _run_eval(args: argparse.Namespace) -> None:
             "top_k": top_k,
             "candidate_k": candidate_k,
             "search_mode": search_mode.value,
+            "rerank": rerank if rerank is not None else rag_settings.rerank_enabled,
             "llm_enabled": llm_report is not None,
         },
     )
@@ -187,6 +190,11 @@ def main() -> None:
         "--search-mode",
         choices=[mode.value for mode in SearchMode],
         help="Retrieval mode (default: SEARCH_MODE from settings)",
+    )
+    eval_parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Enable cross-encoder reranking for this eval run",
     )
     eval_parser.add_argument(
         "--output",
