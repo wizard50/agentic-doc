@@ -26,6 +26,7 @@ def run_retrieval_eval(
     dataset_name: str,
     search_mode: SearchMode = SearchMode.SEMANTIC,
     candidate_k: int = 20,
+    rerank: bool | None = None,
 ) -> RetrievalEvalRun:
     """Run golden queries against a retriever and compute retrieval metrics."""
     if retriever.count() == 0:
@@ -39,6 +40,7 @@ def run_retrieval_eval(
                 top_k=top_k,
                 mode=search_mode,
                 candidate_k=candidate_k,
+                rerank=rerank,
             )
         )
         for query in queries

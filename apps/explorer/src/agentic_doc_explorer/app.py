@@ -82,6 +82,7 @@ with st.sidebar:
         format_func=lambda mode: mode.value,
         index=list(SearchMode).index(settings.search_mode),
     )
+    rerank_enabled = st.checkbox("Rerank results", value=settings.rerank_enabled)
 
     if phoenix_settings.enabled:
         st.divider()
@@ -136,15 +137,19 @@ if st.session_state.get("run_search"):
                         source_suffix,
                         section_path_contains,
                     ),
+                    rerank=rerank_enabled,
                 )
             )
 
         st.subheader("Results")
-        score_caption = {
-            SearchMode.SEMANTIC: "Lower score = closer match (Chroma distance)",
-            SearchMode.KEYWORD: "Higher score = stronger BM25 match",
-            SearchMode.HYBRID: "Higher score = stronger fused rank (RRF)",
-        }[search_mode]
+        if rerank_enabled:
+            score_caption = "Higher score = stronger cross-encoder relevance"
+        else:
+            score_caption = {
+                SearchMode.SEMANTIC: "Lower score = closer match (Chroma distance)",
+                SearchMode.KEYWORD: "Higher score = stronger BM25 match",
+                SearchMode.HYBRID: "Higher score = stronger fused rank (RRF)",
+            }[search_mode]
         st.caption(score_caption)
         if not hits:
             st.info("No results found.")

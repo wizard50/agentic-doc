@@ -1,44 +1,12 @@
-from agentic_doc_rag.models import DocumentChunk, SearchResult
+from support.fakes import TrackingSparseIndex, TrackingVectorStore
+
 from agentic_doc_rag.retrieval import RetrievalRequest, SearchMode
 from agentic_doc_rag.retrieval.retrieve import RetrieveStage
 
 
-class _StubVectorStore:
-    def __init__(self) -> None:
-        self.search_calls: list[tuple[str, int]] = []
-
-    def upsert(self, chunks: list[DocumentChunk]) -> None:
-        raise NotImplementedError
-
-    def search(self, query: str, k: int) -> list[SearchResult]:
-        self.search_calls.append((query, k))
-        return [SearchResult(chunk=DocumentChunk(id="dense-1", text="dense"), score=0.2)]
-
-    def delete(self, ids: list[str]) -> None:
-        raise NotImplementedError
-
-    def count(self) -> int:
-        return 1
-
-
-class _StubSparseIndex:
-    def __init__(self) -> None:
-        self.search_calls: list[tuple[str, int]] = []
-
-    def build(self, chunks: list[DocumentChunk]) -> None:
-        raise NotImplementedError
-
-    def search(self, query: str, k: int) -> list[SearchResult]:
-        self.search_calls.append((query, k))
-        return [SearchResult(chunk=DocumentChunk(id="sparse-1", text="sparse"), score=1.5)]
-
-    def count(self) -> int:
-        return 1
-
-
 def test_retrieve_stage_uses_semantic_backend_with_pool_k() -> None:
-    store = _StubVectorStore()
-    sparse = _StubSparseIndex()
+    store = TrackingVectorStore()
+    sparse = TrackingSparseIndex()
     stage = RetrieveStage(store, sparse)
 
     results = stage.run(RetrievalRequest(query="ownership", mode=SearchMode.SEMANTIC, top_k=3))
@@ -49,8 +17,8 @@ def test_retrieve_stage_uses_semantic_backend_with_pool_k() -> None:
 
 
 def test_retrieve_stage_uses_keyword_backend_with_pool_k() -> None:
-    store = _StubVectorStore()
-    sparse = _StubSparseIndex()
+    store = TrackingVectorStore()
+    sparse = TrackingSparseIndex()
     stage = RetrieveStage(store, sparse)
 
     results = stage.run(RetrievalRequest(query="borrowing", mode=SearchMode.KEYWORD, top_k=4))
@@ -61,8 +29,8 @@ def test_retrieve_stage_uses_keyword_backend_with_pool_k() -> None:
 
 
 def test_retrieve_stage_hybrid_queries_both_backends_with_candidate_k() -> None:
-    store = _StubVectorStore()
-    sparse = _StubSparseIndex()
+    store = TrackingVectorStore()
+    sparse = TrackingSparseIndex()
     stage = RetrieveStage(store, sparse)
 
     results = stage.run(
@@ -76,8 +44,8 @@ def test_retrieve_stage_hybrid_queries_both_backends_with_candidate_k() -> None:
 
 
 def test_retrieve_stage_hybrid_uses_top_k_when_larger_than_candidate_k() -> None:
-    store = _StubVectorStore()
-    sparse = _StubSparseIndex()
+    store = TrackingVectorStore()
+    sparse = TrackingSparseIndex()
     stage = RetrieveStage(store, sparse)
 
     stage.run(RetrievalRequest(query="ownership", mode=SearchMode.HYBRID, top_k=8, candidate_k=3))

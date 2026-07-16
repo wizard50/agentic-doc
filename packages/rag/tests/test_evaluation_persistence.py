@@ -1,24 +1,18 @@
 import json
 from pathlib import Path
 
+from support.builders import search_result
+
 from agentic_doc_rag.evaluation.metrics import compute_report
 from agentic_doc_rag.evaluation.models import EvalQuery, LlmEvalReport
 from agentic_doc_rag.evaluation.persistence import build_eval_payload, save_eval_report
-from agentic_doc_rag.models import DocumentChunk, SearchResult
-
-
-def _search_result(chunk_id: str, source: str) -> SearchResult:
-    return SearchResult(
-        chunk=DocumentChunk(id=chunk_id, text="example", metadata={"source": source}),
-        score=0.1,
-    )
 
 
 def test_build_eval_payload_includes_metadata_and_optional_llm_report() -> None:
     queries = [EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"])]
     report = compute_report(
         queries,
-        {"q1": [_search_result("1", "ownership.md")]},
+        {"q1": [search_result("1", "ownership.md")]},
         top_k=1,
         dataset_name="test.jsonl",
     )

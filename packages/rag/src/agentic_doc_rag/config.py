@@ -36,6 +36,14 @@ class RagSettings(BaseSettings):
         ge=1,
         description="Prefetch size for hybrid search before fusion",
     )
+    rerank_enabled: bool = Field(
+        default=False,
+        description="Enable cross-encoder reranking by default",
+    )
+    rerank_model: str = Field(
+        default="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        description="Cross-encoder model used for reranking",
+    )
 
 
 def get_rag_settings() -> RagSettings:

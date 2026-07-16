@@ -1,23 +1,9 @@
-from agentic_doc_rag.models import DocumentChunk, SearchResult
-from agentic_doc_rag.retrieval import (
-    MetadataFilter,
-    PipelineRetriever,
-    RetrievalRequest,
-    RetrieveStage,
-)
+from support.builders import search_result
+from support.fakes import StubVectorStore
+from support.pipelines import semantic_pipeline_retriever
+
+from agentic_doc_rag.retrieval import MetadataFilter, RetrievalRequest
 from agentic_doc_rag.retrieval.filters import MetadataFilterStage, matches_filter
-from agentic_doc_rag.retrieval.topk import TopKStage
-
-
-def _result(source: str, section_path: str, chunk_id: str) -> SearchResult:
-    return SearchResult(
-        chunk=DocumentChunk(
-            id=chunk_id,
-            text="example",
-            metadata={"source": source, "section_path": section_path},
-        ),
-        score=1.0,
-    )
 
 
 def test_matches_filter_source_contains() -> None:
@@ -50,7 +36,7 @@ def test_matches_filter_requires_all_specified_fields() -> None:
 
 def test_metadata_filter_stage_passes_through_when_filters_are_none() -> None:
     stage = MetadataFilterStage()
-    results = [_result("ownership.md", "Ownership", "1")]
+    results = [search_result("1", "ownership.md", section_path="Ownership")]
 
     assert stage.run(RetrievalRequest(query="ownership", top_k=3), results) == results
 
@@ -58,8 +44,8 @@ def test_metadata_filter_stage_passes_through_when_filters_are_none() -> None:
 def test_metadata_filter_stage_trims_non_matching_results() -> None:
     stage = MetadataFilterStage()
     results = [
-        _result("borrowing.md", "Borrowing", "1"),
-        _result("ownership.md", "Ownership", "2"),
+        search_result("1", "borrowing.md", section_path="Borrowing"),
+        search_result("2", "ownership.md", section_path="Ownership"),
     ]
     request = RetrievalRequest(
         query="rules",
@@ -74,42 +60,15 @@ def test_metadata_filter_stage_trims_non_matching_results() -> None:
 
 
 def test_pipeline_filter_and_topk_limit_final_results() -> None:
-    class _StubVectorStore:
-        def upsert(self, chunks: list[DocumentChunk]) -> None:
-            raise NotImplementedError
-
-        def search(self, query: str, k: int) -> list[SearchResult]:
-            return [
-                _result("borrowing.md", "Borrowing", "1"),
-                _result("ownership.md", "Ownership", "2"),
-                _result("traits.md", "Traits", "3"),
-            ][:k]
-
-        def delete(self, ids: list[str]) -> None:
-            raise NotImplementedError
-
-        def count(self) -> int:
-            return 3
-
-    class _UnusedSparseIndex:
-        def build(self, chunks: list[DocumentChunk]) -> None:
-            raise NotImplementedError
-
-        def search(self, query: str, k: int) -> list[SearchResult]:
-            raise AssertionError("sparse search should not be called")
-
-        def count(self) -> int:
-            return 0
-
-    store = _StubVectorStore()
-    retriever = PipelineRetriever(
-        stages=[
-            RetrieveStage(store, _UnusedSparseIndex()),
-            MetadataFilterStage(),
-            TopKStage(),
+    store = StubVectorStore(
+        fixed_results=[
+            search_result("1", "borrowing.md", section_path="Borrowing"),
+            search_result("2", "ownership.md", section_path="Ownership"),
+            search_result("3", "traits.md", section_path="Traits"),
         ],
-        vectorstore=store,
+        count=3,
     )
+    retriever = semantic_pipeline_retriever(store)
 
     results = retriever.retrieve(
         RetrievalRequest(

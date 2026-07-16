@@ -5,6 +5,7 @@ import httpx
 import pandas as pd
 import pytest
 from phoenix.evals import Score
+from support.builders import search_result
 
 from agentic_doc_rag.evaluation.config import EvalSettings
 from agentic_doc_rag.evaluation.metrics import compute_report
@@ -19,7 +20,7 @@ from agentic_doc_rag.evaluation.phoenix import (
     upload_relevance_annotations,
 )
 from agentic_doc_rag.evaluation.runner import RetrievalEvalRun
-from agentic_doc_rag.models import DocumentChunk, SearchResult
+from agentic_doc_rag.models import SearchResult
 
 
 def _eval_run(
@@ -29,21 +30,14 @@ def _eval_run(
     return RetrievalEvalRun(report=report, results_by_query_id=results_by_query_id)
 
 
-def _search_result(chunk_id: str, text: str, source: str) -> SearchResult:
-    return SearchResult(
-        chunk=DocumentChunk(id=chunk_id, text=text, metadata={"source": source}),
-        score=0.1,
-    )
-
-
 def test_build_document_eval_dataframe_expands_retrieved_documents() -> None:
     queries = [
         EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"]),
     ]
     results = {
         "q1": [
-            _search_result("1", "ownership rules", "ownership.md"),
-            _search_result("2", "borrowing rules", "borrowing.md"),
+            search_result("1", "ownership.md", text="ownership rules"),
+            search_result("2", "borrowing.md", text="borrowing rules"),
         ]
     }
 
@@ -85,7 +79,7 @@ def test_run_document_relevance_eval_requires_llm_api_key(
     queries = [EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"])]
     eval_run = _eval_run(
         queries,
-        {"q1": [_search_result("1", "ownership rules", "ownership.md")]},
+        {"q1": [search_result("1", "ownership.md", text="ownership rules")]},
         top_k=1,
     )
 
@@ -110,7 +104,7 @@ def test_run_document_relevance_eval_uses_phoenix_evaluator(
     queries = [EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"])]
     eval_run = _eval_run(
         queries,
-        {"q1": [_search_result("1", "ownership rules", "ownership.md")]},
+        {"q1": [search_result("1", "ownership.md", text="ownership rules")]},
         top_k=1,
     )
 
@@ -186,7 +180,7 @@ def test_run_llm_relevance_eval_uploads_annotations_when_enabled(
     queries = [EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"])]
     eval_run = _eval_run(
         queries,
-        {"q1": [_search_result("1", "ownership rules", "ownership.md")]},
+        {"q1": [search_result("1", "ownership.md", text="ownership rules")]},
         top_k=1,
     )
     scored_df = pd.DataFrame(
@@ -226,7 +220,7 @@ def test_run_llm_relevance_eval_skips_phoenix_when_upload_disabled(
     queries = [EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"])]
     eval_run = _eval_run(
         queries,
-        {"q1": [_search_result("1", "ownership rules", "ownership.md")]},
+        {"q1": [search_result("1", "ownership.md", text="ownership rules")]},
         top_k=1,
     )
     scored_df = pd.DataFrame(
@@ -269,7 +263,7 @@ def test_run_llm_relevance_eval_survives_unreachable_phoenix(
     queries = [EvalQuery(id="q1", query="ownership", expected_sources=["ownership.md"])]
     eval_run = _eval_run(
         queries,
-        {"q1": [_search_result("1", "ownership rules", "ownership.md")]},
+        {"q1": [search_result("1", "ownership.md", text="ownership rules")]},
         top_k=1,
     )
     scored_df = pd.DataFrame(
