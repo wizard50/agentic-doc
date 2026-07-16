@@ -37,6 +37,7 @@ uv run ty check
 
 ```bash
 uv run explorer ingest   # index corpus into data/chroma
+uv run explorer ingest --source path/to/markdown
 uv run explorer          # launch Streamlit search UI
 uv run explorer eval     # run retrieval benchmark against golden queries
 ```

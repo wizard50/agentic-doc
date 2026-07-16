@@ -40,6 +40,14 @@ class RagSettings(BaseSettings):
     bm25_persist_dir: Path = Field(
         default=Path("data/bm25"), description="Directory to persist the BM25 sparse index"
     )
+    ingest_source_dir: Path = Field(
+        default=Path("data/download/rust-book/src"),
+        description="Root directory of markdown files to index",
+    )
+    ingest_skip_files: str = Field(
+        default="SUMMARY.md,title-page.md",
+        description="Comma-separated markdown filenames to skip during ingest",
+    )
     search_mode: SearchMode = Field(
         default=SearchMode.SEMANTIC,
         description="Default retrieval mode (semantic, keyword, or hybrid)",

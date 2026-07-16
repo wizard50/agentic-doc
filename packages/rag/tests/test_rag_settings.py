@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from agentic_doc_rag.config import EmbeddingType, RagSettings, get_rag_settings
 
 
@@ -16,3 +18,9 @@ def test_embedding_defaults() -> None:
     settings = RagSettings()
     assert settings.embedding_type == EmbeddingType.CHROMA_DEFAULT
     assert settings.embedding_model == "all-MiniLM-L6-v2"
+
+
+def test_ingest_defaults() -> None:
+    settings = RagSettings()
+    assert settings.ingest_source_dir == Path("data/download/rust-book/src")
+    assert settings.ingest_skip_files == "SUMMARY.md,title-page.md"
