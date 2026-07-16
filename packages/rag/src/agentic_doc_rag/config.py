@@ -11,6 +11,11 @@ class VectorStoreType(StrEnum):
     CHROMA = "chroma"
 
 
+class EmbeddingType(StrEnum):
+    CHROMA_DEFAULT = "chroma_default"
+    SENTENCE_TRANSFORMERS = "sentence_transformers"
+
+
 class RagSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -23,6 +28,14 @@ class RagSettings(BaseSettings):
     )
     chroma_collection_name: str = Field(
         default="rust_book", description="Name of the Chroma collection"
+    )
+    embedding_type: EmbeddingType = Field(
+        default=EmbeddingType.CHROMA_DEFAULT,
+        description="Embedding backend for semantic search",
+    )
+    embedding_model: str = Field(
+        default="all-MiniLM-L6-v2",
+        description="Embedding model name (sentence-transformers backend)",
     )
     bm25_persist_dir: Path = Field(
         default=Path("data/bm25"), description="Directory to persist the BM25 sparse index"

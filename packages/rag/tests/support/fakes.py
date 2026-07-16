@@ -3,6 +3,17 @@ from typing import Literal
 from agentic_doc_rag.models import DocumentChunk, SearchResult
 
 
+class StubEmbeddings:
+    model_name = "stub"
+    dimensions = 3
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [[float(len(text)), 1.0, 0.0] for text in texts]
+
+    def embed_query(self, query: str) -> list[float]:
+        return [float(len(query)), 1.0, 0.0]
+
+
 class PassthroughReranker:
     def rerank(self, query: str, results: list[SearchResult]) -> list[SearchResult]:
         del query
