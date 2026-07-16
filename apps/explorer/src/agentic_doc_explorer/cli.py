@@ -21,6 +21,7 @@ from agentic_doc_rag.evaluation import (
     save_eval_report,
 )
 from agentic_doc_rag.ingest import (
+    IngestEmptyCorpusError,
     IngestSourceNotFoundError,
     resolve_ingest_settings,
     run_ingestion,
@@ -43,7 +44,7 @@ def _run_ingest(args: argparse.Namespace) -> None:
     )
     try:
         result = run_ingestion(vectorstore, sparse_index, ingest_settings)
-    except IngestSourceNotFoundError as exc:
+    except (IngestSourceNotFoundError, IngestEmptyCorpusError) as exc:
         print(exc, file=sys.stderr)
         sys.exit(1)
 
@@ -65,11 +66,6 @@ def _run_ingest(args: argparse.Namespace) -> None:
     print("─" * 40)
     for label, value in details.items():
         print(f"  {label:<{label_width}}  {value}")
-
-    if document_count == 0:
-        print(
-            f"\n  No documents indexed. Check that the source directory exists:\n  {ingest_settings.source_dir.resolve()}"
-        )
 
 
 def _run_ui() -> None:
@@ -152,6 +148,10 @@ def _run_eval(args: argparse.Namespace) -> None:
             "candidate_k": candidate_k,
             "search_mode": search_mode.value,
             "rerank": rerank if rerank is not None else rag_settings.rerank_enabled,
+            "ingest_source_dir": str(rag_settings.ingest_source_dir),
+            "ingest_skip_files": rag_settings.ingest_skip_files,
+            "embedding_type": rag_settings.embedding_type.value,
+            "embedding_model": rag_settings.embedding_model,
             "llm_enabled": llm_report is not None,
         },
     )

@@ -3,7 +3,12 @@ from pathlib import Path
 import pytest
 from support.paths import CORPUS_DIR
 
-from agentic_doc_rag.ingest import IngestSettings, IngestSourceNotFoundError, run_ingestion
+from agentic_doc_rag.ingest import (
+    IngestEmptyCorpusError,
+    IngestSettings,
+    IngestSourceNotFoundError,
+    run_ingestion,
+)
 from agentic_doc_rag.models import DocumentChunk, SearchResult
 
 
@@ -55,4 +60,13 @@ def test_run_ingestion_raises_when_source_dir_is_missing(tmp_path: Path) -> None
     settings = IngestSettings(source_dir=tmp_path / "missing")
 
     with pytest.raises(IngestSourceNotFoundError, match="does not exist"):
+        run_ingestion(_RecordingVectorStore(), _RecordingSparseIndex(), settings)
+
+
+def test_run_ingestion_raises_when_source_dir_has_no_markdown(tmp_path: Path) -> None:
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    settings = IngestSettings(source_dir=empty_dir)
+
+    with pytest.raises(IngestEmptyCorpusError, match="No markdown files indexed"):
         run_ingestion(_RecordingVectorStore(), _RecordingSparseIndex(), settings)
