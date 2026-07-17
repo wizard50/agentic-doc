@@ -2,12 +2,8 @@ from agentic_doc_rag.ingest.errors import IngestEmptyCorpusError, IngestSourceNo
 from agentic_doc_rag.ingest.models import IngestResult, IngestSettings
 from agentic_doc_rag.models import DocumentChunk
 from agentic_doc_rag.observability.tracing import get_tracer, mark_chain_span
-from agentic_doc_rag.parsers import (
-    default_parsers,
-    discover_files,
-    parser_for_path,
-    supported_extensions,
-)
+from agentic_doc_rag.parsers.discovery import discover_files
+from agentic_doc_rag.parsers.registry import default_parsers, parser_for_path, supported_extensions
 from agentic_doc_rag.sparse.protocols import SparseIndex
 from agentic_doc_rag.vectorstore.base import VectorStore
 
