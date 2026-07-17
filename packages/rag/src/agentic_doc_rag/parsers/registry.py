@@ -2,11 +2,12 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from agentic_doc_rag.parsers.markdown import MarkdownParser
+from agentic_doc_rag.parsers.pdf import PdfParser
 from agentic_doc_rag.parsers.protocols import DocumentParser
 
 
 def default_parsers() -> list[DocumentParser]:
-    return [MarkdownParser()]
+    return [MarkdownParser(), PdfParser()]
 
 
 def supported_extensions(parsers: Sequence[DocumentParser]) -> frozenset[str]:
