@@ -11,7 +11,7 @@ See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
 ```
 packages/
   core/     # Shared config and foundational types
-  rag/      # RAG retrieval layer (chunking, embeddings, vector store)
+  rag/      # RAG retrieval layer (ingest, parsers, retrieval, eval)
 apps/
   explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
 ```
@@ -22,6 +22,8 @@ apps/
 uv sync --dev
 pre-commit install
 ```
+
+Copy [`.env.example`](.env.example) to `.env` if you need local overrides (search mode, embeddings, ingest paths, Phoenix, LLM keys).
 
 ## Development
 
@@ -36,11 +38,16 @@ uv run ty check
 ![Doc Explorer search UI](assets/doc-explorer-screenhot.png)
 
 ```bash
-uv run explorer ingest   # index corpus into data/chroma
-uv run explorer ingest --source path/to/markdown
-uv run explorer          # launch Streamlit search UI
-uv run explorer eval     # run retrieval benchmark against golden queries
+uv run explorer ingest                          # index default corpus (Rust book Markdown)
+uv run explorer ingest --source path/to/docs    # any tree of .md / .pdf files
+uv run explorer ingest --skip SUMMARY.md        # replace default skip list for this run
+uv run explorer                                 # launch Streamlit search UI
+uv run explorer eval                            # retrieval benchmark against golden queries
 ```
+
+**Ingest** indexes Markdown (`.md`) and PDF (`.pdf`) under the source directory. PDFs use the embedded text layer only (no OCR); pages with no extractable text are skipped. Defaults are controlled by `INGEST_SOURCE_DIR` and `INGEST_SKIP_FILES` (see `.env.example`). CLI flags `--source` and `--skip` override those for a single run.
+
+**Search** supports semantic, keyword (BM25), and hybrid modes, optional metadata filters, and optional cross-encoder reranking (`--rerank` on eval, or the UI checkbox).
 
 ## Evaluation
 
@@ -49,6 +56,8 @@ Retrieval quality is measured against a golden query dataset (`rust_book.jsonl`)
 ```bash
 # Requires an indexed corpus (see ingest above)
 uv run explorer eval
+uv run explorer eval --search-mode hybrid
+uv run explorer eval --search-mode hybrid --rerank
 uv run explorer eval --top-k 5 --output json
 uv run explorer eval --fail-under 0.75   # exit 1 if hit@k is below threshold
 

@@ -1,0 +1,11 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.13",
+  "extraPaths": [
+    "packages/core/src",
+    "packages/rag/src",
+    "apps/explorer/src",
+    "packages/rag/tests"
+  ]
+}

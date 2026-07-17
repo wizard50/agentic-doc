@@ -1,7 +1,13 @@
-from agentic_doc_rag.chunk.chunker import chunk_markdown_dir
 from agentic_doc_rag.ingest.errors import IngestEmptyCorpusError, IngestSourceNotFoundError
 from agentic_doc_rag.ingest.models import IngestResult, IngestSettings
+from agentic_doc_rag.models import DocumentChunk
 from agentic_doc_rag.observability.tracing import get_tracer, mark_chain_span
+from agentic_doc_rag.parsers import (
+    default_parsers,
+    discover_files,
+    parser_for_path,
+    supported_extensions,
+)
 from agentic_doc_rag.sparse.protocols import SparseIndex
 from agentic_doc_rag.vectorstore.base import VectorStore
 
@@ -20,19 +26,26 @@ def run_ingestion(
         mark_chain_span(span)
         span.set_attribute("source_dir", str(source_dir.resolve()))
 
-        chunks = chunk_markdown_dir(
-            root=source_dir,
-            chunk_size=settings.chunk_size,
-            chunk_overlap=settings.chunk_overlap,
-            header_levels=set(settings.header_levels),
+        parsers = default_parsers()
+        files = discover_files(
+            source_dir,
             skip_files=settings.skip_files,
+            extensions=supported_extensions(parsers),
         )
+        chunks: list[DocumentChunk] = []
+        for path in files:
+            parser = parser_for_path(path, parsers)
+            if parser is None:
+                continue
+            chunks.extend(parser.parse(path, settings))
+
         if not chunks:
             msg = (
-                f"No markdown files indexed under {source_dir.resolve()}. "
+                f"No indexable files under {source_dir.resolve()}. "
                 "Check --source, INGEST_SOURCE_DIR, and --skip."
             )
             raise IngestEmptyCorpusError(msg)
+
         vectorstore.upsert(chunks)
         sparse_index.build(chunks)
 
