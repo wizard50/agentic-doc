@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agentic_doc_rag.chunk.chunker import _chunk_id, split_with_overlap
+from agentic_doc_rag.chunk.chunker import make_chunk_id, split_with_overlap
 from agentic_doc_rag.ingest.models import IngestSettings
 from agentic_doc_rag.models import DocumentChunk
 from agentic_doc_rag.observability.tracing import get_tracer, mark_chain_span
@@ -71,7 +71,7 @@ def _chunks_from_units(
                 metadata["symbol"] = unit.symbol
             chunks.append(
                 DocumentChunk(
-                    id=_chunk_id(path, f"{section_path}:{index}", index),
+                    id=make_chunk_id(path, f"{section_path}:{index}", index),
                     text=part,
                     metadata=metadata,
                 )

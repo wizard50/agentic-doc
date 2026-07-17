@@ -54,3 +54,31 @@ def test_code_parser_python_fixture() -> None:
     assert "Config" in symbols
     assert "load_config" in symbols
     assert any(chunk.metadata.get("symbol") is None for chunk in chunks)  # preamble/imports
+
+
+def test_code_parser_windows_large_function(tmp_path: Path) -> None:
+    body = "\n".join(f"    x{i} = {i}" for i in range(200))
+    path = tmp_path / "big.rs"
+    path.write_text(f"fn big()\n{{\n{body}\n}}\n", encoding="utf-8")
+
+    chunks = CodeParser().parse(
+        path,
+        IngestSettings(source_dir=tmp_path, chunk_size=200, chunk_overlap=20),
+    )
+
+    big_chunks = [chunk for chunk in chunks if chunk.metadata.get("symbol") == "big"]
+    assert len(big_chunks) > 1
+    assert all(chunk.metadata["section_path"] == "big.rs::big" for chunk in big_chunks)
+    assert all(chunk.metadata["start_line"] == big_chunks[0].metadata["start_line"] for chunk in big_chunks)
+    assert len({chunk.id for chunk in big_chunks}) == len(big_chunks)
+
+
+def test_code_parser_keeps_preamble_as_separate_unit() -> None:
+    chunks = CodeParser().parse(
+        SAMPLE_RUST_PATH,
+        IngestSettings(source_dir=SAMPLE_RUST_PATH.parent),
+    )
+
+    preamble = next(chunk for chunk in chunks if chunk.metadata.get("symbol") is None)
+    assert "use std::io" in preamble.text
+    assert "fn " not in preamble.text.split("\n")[0]

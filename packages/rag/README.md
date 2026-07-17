@@ -8,8 +8,8 @@ RAG retrieval layer for **agentic-doc** — ingest, multi-format parsers, chunki
 src/agentic_doc_rag/
   config.py        # RagSettings (vector store, search, embeddings, ingest, rerank)
   ingest/          # IngestSettings, run_ingestion()
-  parsers/         # DocumentParser registry (Markdown, PDF)
-  chunk/           # Markdown-oriented chunking helpers
+  parsers/         # DocumentParser registry (Markdown, PDF, code)
+  chunk/           # Shared chunking helpers (markdown + make_chunk_id)
   embeddings/      # Embeddings protocol (Chroma default, sentence-transformers)
   sparse/          # BM25 keyword index
   vectorstore/     # VectorStore protocol + Chroma
@@ -20,8 +20,9 @@ src/agentic_doc_rag/
 
 ## Capabilities (M1)
 
-- **Ingest:** recursive discovery of `.md` and `.pdf` under a source directory
+- **Ingest:** recursive discovery of `.md`, `.pdf`, and common source files under a source directory
 - **PDF:** text-layer extraction via PyMuPDF (no OCR); empty pages skipped
+- **Code:** structure-aware unit split (Rust/Python/TS/Go profiles + generic fallback); large units windowed
 - **Retrieval:** semantic, BM25 keyword, hybrid (RRF); metadata filters; optional cross-encoder rerank
 - **Storage:** Chroma (local) + BM25 sparse index
 - **Eval:** hit@k / MRR / recall + optional LLM document relevance

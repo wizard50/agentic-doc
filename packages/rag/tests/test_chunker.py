@@ -3,6 +3,7 @@ from pathlib import Path
 from agentic_doc_rag.chunk.chunker import (
     chunk_markdown_dir,
     chunk_markdown_text,
+    make_chunk_id,
     split_by_headers,
     split_with_overlap,
 )
@@ -50,6 +51,17 @@ def test_split_with_overlap_produces_windows() -> None:
     assert parts[0] == "a" * 40
     assert len(parts[1]) == 40
     assert parts[-1].endswith("a")
+
+
+def test_make_chunk_id_is_stable_and_short() -> None:
+    first = make_chunk_id("lib.rs", "lib.rs::main", 0)
+    second = make_chunk_id("lib.rs", "lib.rs::main", 0)
+    other = make_chunk_id("lib.rs", "lib.rs::main", 1)
+
+    assert first == second
+    assert first != other
+    assert len(first) == 16
+
 
 
 def test_chunk_markdown_text_adds_metadata_and_ids() -> None:

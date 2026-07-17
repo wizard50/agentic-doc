@@ -85,7 +85,8 @@ def split_with_overlap(text: str, chunk_size: int, chunk_overlap: int) -> list[s
     return parts
 
 
-def _chunk_id(source: str | Path, section_path: str, index: int) -> str:
+def make_chunk_id(source: str | Path, section_path: str, index: int) -> str:
+    """Return a stable short id for a chunk within a source section."""
     key = f"{source}:{section_path}:{index}"
     return hashlib.sha256(key.encode()).hexdigest()[:16]
 
@@ -109,7 +110,7 @@ def chunk_markdown_text(
         for index, part in enumerate(split_with_overlap(section.text, chunk_size, chunk_overlap)):
             chunks.append(
                 DocumentChunk(
-                    id=_chunk_id(source, section.section_path, index),
+                    id=make_chunk_id(source, section.section_path, index),
                     text=part,
                     metadata={
                         "source": str(source),

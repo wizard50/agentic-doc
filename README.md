@@ -39,13 +39,19 @@ uv run ty check
 
 ```bash
 uv run explorer ingest                          # index default corpus (Rust book Markdown)
-uv run explorer ingest --source path/to/docs    # any tree of .md / .pdf files
+uv run explorer ingest --source path/to/docs    # any tree of docs / code under source
 uv run explorer ingest --skip SUMMARY.md        # replace default skip list for this run
 uv run explorer                                 # launch Streamlit search UI
 uv run explorer eval                            # retrieval benchmark against golden queries
 ```
 
-**Ingest** indexes Markdown (`.md`) and PDF (`.pdf`) under the source directory. PDFs use the embedded text layer only (no OCR); pages with no extractable text are skipped. Defaults are controlled by `INGEST_SOURCE_DIR` and `INGEST_SKIP_FILES` (see `.env.example`). CLI flags `--source` and `--skip` override those for a single run.
+**Ingest** indexes under the source directory:
+
+- **Markdown** (`.md`) — header-aware chunking  
+- **PDF** (`.pdf`) — embedded text layer only (no OCR); empty pages skipped  
+- **Code** (`.rs`, `.py`, `.ts`/`.tsx`/`.js`/`.jsx`, `.go`) — structure-aware splits on top-level definitions (not full AST)
+
+Defaults are controlled by `INGEST_SOURCE_DIR` and `INGEST_SKIP_FILES` (see `.env.example`). CLI flags `--source` and `--skip` override those for a single run.
 
 **Search** supports semantic, keyword (BM25), and hybrid modes, optional metadata filters, and optional cross-encoder reranking (`--rerank` on eval, or the UI checkbox).
 
