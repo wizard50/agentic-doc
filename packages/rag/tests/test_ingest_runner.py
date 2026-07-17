@@ -63,10 +63,11 @@ def test_run_ingestion_raises_when_source_dir_is_missing(tmp_path: Path) -> None
         run_ingestion(_RecordingVectorStore(), _RecordingSparseIndex(), settings)
 
 
-def test_run_ingestion_raises_when_source_dir_has_no_markdown(tmp_path: Path) -> None:
+def test_run_ingestion_raises_when_source_dir_has_no_indexable_files(tmp_path: Path) -> None:
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
+    (empty_dir / "notes.txt").write_text("not indexed yet\n", encoding="utf-8")
     settings = IngestSettings(source_dir=empty_dir)
 
-    with pytest.raises(IngestEmptyCorpusError, match="No markdown files indexed"):
+    with pytest.raises(IngestEmptyCorpusError, match="No indexable files"):
         run_ingestion(_RecordingVectorStore(), _RecordingSparseIndex(), settings)
