@@ -2,7 +2,7 @@ from pathlib import Path
 from shutil import copy2
 
 import pytest
-from support.paths import CORPUS_DIR, SAMPLE_PDF_PATH
+from support.paths import CORPUS_DIR, SAMPLE_PDF_PATH, SAMPLE_RUST_PATH
 
 from agentic_doc_rag.ingest import (
     IngestEmptyCorpusError,
@@ -91,3 +91,28 @@ def test_run_ingestion_indexes_mixed_markdown_and_pdf(tmp_path: Path) -> None:
     assert str(pdf_path) in sources
     assert "Markdown ownership" in texts
     assert "Ownership in Rust" in texts
+
+
+def test_run_ingestion_indexes_mixed_markdown_pdf_and_code(tmp_path: Path) -> None:
+    (tmp_path / "notes.md").write_text("## Notes\n\nMarkdown ownership note.\n", encoding="utf-8")
+    copy2(SAMPLE_PDF_PATH, tmp_path / "manual.pdf")
+    copy2(SAMPLE_RUST_PATH, tmp_path / "lib.rs")
+
+    vectorstore = _RecordingVectorStore()
+    result = run_ingestion(
+        vectorstore,
+        _RecordingSparseIndex(),
+        IngestSettings(source_dir=tmp_path),
+    )
+
+    sources = {Path(chunk.metadata["source"]).name for chunk in vectorstore.upserted}
+    languages = {
+        chunk.metadata.get("language")
+        for chunk in vectorstore.upserted
+        if chunk.metadata.get("file_type") == "code"
+    }
+
+    assert result.file_count == 3
+    assert sources == {"notes.md", "manual.pdf", "lib.rs"}
+    assert "rust" in languages
+    assert any("take_ownership" in chunk.text for chunk in vectorstore.upserted)

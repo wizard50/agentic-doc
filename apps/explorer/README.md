@@ -11,7 +11,7 @@ uv sync --dev
 # index the default corpus (Rust book Markdown under INGEST_SOURCE_DIR)
 uv run explorer ingest
 
-# index any documentation tree (Markdown + PDF text layer)
+# index any docs/code tree (Markdown, PDF text layer, common source languages)
 uv run explorer ingest --source path/to/docs
 uv run explorer ingest --source path/to/docs --skip NOTES.md
 
@@ -26,7 +26,7 @@ uv run explorer eval --search-mode hybrid --rerank
 uv run explorer eval --llm   # optional LLM relevance scoring (LLM_API_KEY)
 ```
 
-Ingest picks up `.md` and `.pdf` files recursively. PDF extraction uses the text layer only (no OCR). Configure defaults via `.env` (`INGEST_SOURCE_DIR`, `INGEST_SKIP_FILES`, search/embedding/rerank settings) — see the workspace [`.env.example`](../../.env.example).
+Ingest picks up `.md`, `.pdf`, and common code extensions (`.rs`, `.py`, `.ts`/`.js`, `.go`, …) recursively. PDFs use the text layer only (no OCR). Code uses structure-aware splitting (top-level defs / blank-line fallback), not full AST parsing. Configure defaults via `.env` (`INGEST_SOURCE_DIR`, `INGEST_SKIP_FILES`, search/embedding/rerank settings) — see the workspace [`.env.example`](../../.env.example).
 
 ## Deploy (Streamlit Community Cloud)
 

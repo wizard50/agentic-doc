@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pymupdf
 
-from agentic_doc_rag.chunk.chunker import _chunk_id, split_with_overlap
+from agentic_doc_rag.chunk.chunker import make_chunk_id, split_with_overlap
 from agentic_doc_rag.ingest.models import IngestSettings
 from agentic_doc_rag.models import DocumentChunk
 from agentic_doc_rag.observability.tracing import get_tracer, mark_chain_span
@@ -54,7 +54,7 @@ class PdfParser:
                 for index, part in enumerate(parts):
                     chunks.append(
                         DocumentChunk(
-                            id=_chunk_id(path, section_path, index),
+                            id=make_chunk_id(path, section_path, index),
                             text=part,
                             metadata={
                                 "source": str(path),
