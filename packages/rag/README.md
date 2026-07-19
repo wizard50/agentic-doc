@@ -26,4 +26,38 @@ src/agentic_doc_rag/
 - **Storage:** Chroma (local) + BM25 sparse index
 - **Eval:** hit@k / MRR / recall + optional LLM document relevance
 
+## Public API
+
+Stable entry points are re-exported from `agentic_doc_rag`:
+
+```python
+from agentic_doc_rag import (
+    create_retriever,
+    create_sparse_index,
+    create_vector_store,
+    get_rag_settings,
+    register_tracing,
+    resolve_ingest_settings,
+    run_ingestion,
+    RetrievalRequest,
+    SearchMode,
+)
+
+settings = get_rag_settings()
+register_tracing(...)  # optional Phoenix
+
+run_ingestion(
+    create_vector_store(settings),
+    create_sparse_index(settings),
+    resolve_ingest_settings(settings),
+)
+
+retriever = create_retriever(settings)
+hits = retriever.retrieve(
+    RetrievalRequest(query="What is ownership?", mode=SearchMode.HYBRID, top_k=5)
+)
+```
+
+Submodules remain available for advanced use (custom stages, parsers, eval helpers).
+
 App entry points live in `apps/explorer` (`uv run explorer ingest|ui|eval`). See the workspace root [README](../../README.md) and [`.env.example`](../../.env.example).
