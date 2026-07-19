@@ -77,6 +77,7 @@ Each value has one owner.
     assert len(chunks) == 2
     assert chunks[0].metadata["h2"] == "Ownership"
     assert chunks[0].metadata["source"] == "ch04-01.md"
+    assert chunks[0].metadata["file_type"] == "markdown"
     assert chunks[0].text.startswith("## Ownership")
     assert chunks[1].text.startswith("### Rules")
     assert chunks[1].metadata["h3"] == "Rules"

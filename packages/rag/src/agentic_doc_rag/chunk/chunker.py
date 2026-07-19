@@ -115,6 +115,7 @@ def chunk_markdown_text(
                     metadata={
                         "source": str(source),
                         "section_path": section.section_path,
+                        "file_type": "markdown",
                         **section.headers,
                     },
                 )

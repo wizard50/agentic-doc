@@ -3,14 +3,14 @@
 ## Project Overview
 - **Name**: agentic-doc
 - **Goal**: Build a production-grade Agentic RAG system for technical documentation with strong observability, evaluation, and clean architecture.
-- **Domain**: Technical documentation and developer knowledge bases (Markdown, code, PDFs). Initial corpus: The Rust Programming Language book.
+- **Domain**: Technical documentation and developer knowledge bases (Markdown, PDFs, and similar). Initial corpus: The Rust Programming Language book.
 - **Approach**: Incremental delivery across three milestones (see below).
 
 ## Current Focus
 **Milestone 1 – RAG Core (Foundation)**
 
 We are currently building the foundational RAG system:
-- Robust document ingestion pipeline (Markdown, code files, PDFs, etc.)
+- Robust document ingestion pipeline (Markdown, PDFs, etc.)
 - Advanced RAG techniques (smart chunking, embeddings, hybrid search, re-ranking)
 - Vector database layer with clean abstraction (Chroma for local dev, pgvector/LanceDB planned)
 - Observability and evaluation from day one (Phoenix tracing + retrieval/faithfulness metrics)
