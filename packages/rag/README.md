@@ -21,7 +21,7 @@ src/agentic_doc_rag/
 ## Capabilities (M1)
 
 - **Ingest:** recursive discovery of `.md` and `.pdf` under a source directory
-- **PDF:** text-layer extraction via PyMuPDF (no OCR); empty pages skipped
+- **PDF:** layout-aware extraction via pymupdf4llm → markdown, then header-aware chunking (OCR off by default); empty pages skipped
 - **Retrieval:** semantic, BM25 keyword, hybrid (RRF); path/section metadata filters; optional cross-encoder rerank
 - **Storage:** Chroma (local) + BM25 sparse index
 - **Eval:** hit@k / MRR / recall + optional LLM document relevance
