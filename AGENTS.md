@@ -7,27 +7,39 @@
 - **Approach**: Incremental delivery across three milestones (see below).
 
 ## Current Focus
-**Milestone 1 – RAG Core (Foundation)**
+**Milestone 2 – Agentic Intelligence Layer**
 
-We are currently building the foundational RAG system:
-- Robust document ingestion pipeline (Markdown, PDFs, etc.)
-- Advanced RAG techniques (smart chunking, embeddings, hybrid search, re-ranking)
-- Vector database layer with clean abstraction (Chroma for local dev, pgvector/LanceDB planned)
-- Observability and evaluation from day one (Phoenix tracing + retrieval/faithfulness metrics)
-- Exposes a clean, usable API
+Build agentic capabilities on top of the completed M1 documentation RAG core:
+
+- Multi-step reasoning, planning, and tool use (LangGraph)
+- Answer generation grounded in retrieved context
+- Faithfulness and related answer-quality metrics
+- Structured outputs with Pydantic models
+- Developer-focused workflows (analysis, comparison, gap detection, report generation)
+- Keep agent logic testable, observable, and visible in Phoenix
+
+**Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
 ## Milestones
 
-### Milestone 1 – RAG Core (Foundation) ← Current
-- Robust ingestion pipeline for technical documentation
-- Advanced RAG (chunking, embeddings, hybrid search, re-ranking)
-- Vector store abstraction (Chroma local → production backends)
-- Full observability (Phoenix) and automated evaluation
-- Clean standalone API
+### Milestone 1 – RAG Core (Foundation) ← Closed
 
-### Milestone 2 – Agentic Intelligence Layer
+Delivered documentation RAG:
+
+- **Ingest:** Markdown and PDF (pymupdf4llm → markdown, then header-aware chunking); configurable source directory and skip list via settings/CLI
+- **Embeddings:** swappable backends (Chroma default, sentence-transformers) via settings
+- **Retrieval modes:** semantic (vector), **keyword (BM25)**, and **hybrid (RRF fusion)** of both
+- **Pipeline stages:** retrieve → path/section metadata filters → optional cross-encoder re-ranking → top-k
+- **Storage:** Chroma vector store (local) + BM25 sparse index, with abstractions for future backends
+- **Observability:** Phoenix / OpenTelemetry tracing on ingest and retrieve
+- **Evaluation:** golden-set retrieval metrics (hit@k, MRR, recall@k, per-tag) and optional LLM document relevance
+- **Apps / API:** Streamlit explorer + `ingest` / `eval` / `ui` CLI; public `agentic_doc_rag` exports
+
+### Milestone 2 – Agentic Intelligence Layer ← Current
 - Agentic capabilities on top of Milestone 1
-- Multi-step reasoning, planning, and tool use
+- Multi-step reasoning, planning, and tool use (LangGraph)
+- Answer generation grounded in retrieved context
+- Faithfulness and related answer-quality metrics
 - Structured outputs with Pydantic models
 - Developer-focused workflows (analysis, comparison, gap detection, report generation)
 - Focus on Software Engineering / technical documentation domain
@@ -44,8 +56,8 @@ We are currently building the foundational RAG system:
 - **Orchestration**: LangGraph (primary)
 - **Observability**: Arize Phoenix (preferred)
 - **Vector Store**: Chroma (local development) — abstraction layer for future backends (pgvector, LanceDB, Qdrant, etc.)
-- **LLM**: OpenAI (via LiteLLM when needed)
-- **Frontend**: Streamlit (rapid iteration)
+- **LLM**: OpenAI-compatible APIs (via LiteLLM when needed)
+- **Frontend**: Streamlit (rapid iteration; M1 explorer)
 - **Data Models**: Pydantic v2 (mandatory for all structured data)
 - **Python version**: 3.13+
 
@@ -54,8 +66,9 @@ We are currently building the foundational RAG system:
 - Prefer composition over inheritance
 - All LLM inputs/outputs should use Pydantic models when possible
 - Tracing should be added early and be visible in Phoenix
-- Keep the agent logic testable and observable
-- Build for swapability (especially the VectorStore layer)
+- Keep agent logic testable and observable
+- Build for swapability (especially the VectorStore and Embeddings layers)
+- Prefer the public `agentic_doc_rag` API for app and library consumers; use submodules only for advanced customization
 
 ## Coding Standards
 - Use type hints everywhere
