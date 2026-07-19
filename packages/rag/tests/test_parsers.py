@@ -14,11 +14,12 @@ from agentic_doc_rag.parsers import (
 )
 
 
-def test_supported_extensions_includes_markdown_pdf_and_code() -> None:
+def test_supported_extensions_includes_markdown_and_pdf() -> None:
     extensions = supported_extensions(default_parsers())
     assert ".md" in extensions
     assert ".pdf" in extensions
-    assert ".rs" in extensions
+    assert ".rs" not in extensions
+    assert ".py" not in extensions
 
 
 def test_discover_files_respects_extensions_and_skip(tmp_path: Path) -> None:
@@ -53,6 +54,7 @@ def test_markdown_parser_can_parse_and_chunk(tmp_path: Path) -> None:
     assert chunks
     assert "Hello world" in chunks[0].text
     assert str(path) in chunks[0].metadata["source"]
+    assert chunks[0].metadata["file_type"] == "markdown"
 
 
 def test_pdf_parser_extracts_page_text_and_metadata() -> None:
@@ -86,12 +88,10 @@ def test_pdf_parser_skips_empty_pages() -> None:
     assert "Only page with text" in chunks[0].text
 
 
-def test_parser_for_path_returns_markdown_pdf_or_code_parser() -> None:
-    from agentic_doc_rag.parsers import CodeParser
-
+def test_parser_for_path_returns_markdown_or_pdf_parser() -> None:
     parsers = default_parsers()
 
     assert isinstance(parser_for_path(Path("chapter.md"), parsers), MarkdownParser)
     assert isinstance(parser_for_path(Path("chapter.pdf"), parsers), PdfParser)
-    assert isinstance(parser_for_path(Path("lib.rs"), parsers), CodeParser)
+    assert parser_for_path(Path("lib.rs"), parsers) is None
     assert parser_for_path(Path("chapter.txt"), parsers) is None

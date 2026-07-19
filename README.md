@@ -2,7 +2,7 @@
 
 Production-grade Agentic RAG for technical documentation — with observability, evaluation, and clean architecture.
 
-The workspace is **domain-agnostic**: packages and apps are built to work with any technical documentation corpus (Markdown, code, PDFs, etc.). For local development, [The Rust Programming Language](https://github.com/rust-lang/book) is the reference corpus.
+The workspace is **domain-agnostic**: packages and apps are built to work with technical documentation corpora (Markdown, PDFs, and similar). For local development, [The Rust Programming Language](https://github.com/rust-lang/book) is the reference corpus.
 
 See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
 
@@ -39,7 +39,7 @@ uv run ty check
 
 ```bash
 uv run explorer ingest                          # index default corpus (Rust book Markdown)
-uv run explorer ingest --source path/to/docs    # any tree of docs / code under source
+uv run explorer ingest --source path/to/docs    # any tree of .md / .pdf under source
 uv run explorer ingest --skip SUMMARY.md        # replace default skip list for this run
 uv run explorer                                 # launch Streamlit search UI
 uv run explorer eval                            # retrieval benchmark against golden queries
@@ -49,7 +49,6 @@ uv run explorer eval                            # retrieval benchmark against go
 
 - **Markdown** (`.md`) — header-aware chunking  
 - **PDF** (`.pdf`) — embedded text layer only (no OCR); empty pages skipped  
-- **Code** (`.rs`, `.py`, `.ts`/`.tsx`/`.js`/`.jsx`, `.go`) — structure-aware splits on top-level definitions (not full AST)
 
 Defaults are controlled by `INGEST_SOURCE_DIR` and `INGEST_SKIP_FILES` (see `.env.example`). CLI flags `--source` and `--skip` override those for a single run.
 

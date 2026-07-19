@@ -36,19 +36,21 @@ def _settings():
     return get_rag_settings()
 
 
-def _build_metadata_filter(
+def _build_path_filter(
     source_contains: str,
     source_suffix: str,
     section_path_contains: str,
 ) -> MetadataFilter | None:
-    values = {
-        "source_contains": source_contains.strip() or None,
-        "source_suffix": source_suffix.strip() or None,
-        "section_path_contains": section_path_contains.strip() or None,
-    }
-    if not any(values.values()):
+    source_contains_value = source_contains.strip() or None
+    source_suffix_value = source_suffix.strip() or None
+    section_path_value = section_path_contains.strip() or None
+    if not any((source_contains_value, source_suffix_value, section_path_value)):
         return None
-    return MetadataFilter(**values)
+    return MetadataFilter(
+        source_contains=source_contains_value,
+        source_suffix=source_suffix_value,
+        section_path_contains=section_path_value,
+    )
 
 
 def _render_hit(hit: SearchResult, index: int) -> None:
@@ -102,37 +104,41 @@ if document_count == 0:
     st.code("uv run explorer ingest", language="bash")
     st.stop()
 
-query_input = st.text_input(
-    "Ask a question",
-    value=st.session_state.get("query", ""),
-    placeholder="What is ownership in Rust?",
-)
-query = query_input or ""
+# Form so Enter in the query field submits (same as clicking Search).
+with st.form("search_form", clear_on_submit=False):
+    st.text_input(
+        "Ask a question",
+        key="query",
+        placeholder="What is ownership in Rust?",
+    )
+    submitted = st.form_submit_button("Search", type="primary")
+
+if submitted:
+    st.session_state["run_search"] = True
+
+query = (st.session_state.get("query") or "").strip()
 
 with st.expander("Metadata filters", expanded=False):
     filter_cols = st.columns(3)
     with filter_cols[0]:
-        source_contains = st.text_input("Source contains")
+        source_contains = st.text_input("Source contains", placeholder="e.g. rust-book")
     with filter_cols[1]:
-        source_suffix = st.text_input("Source suffix")
+        source_suffix = st.text_input("Source ends with", placeholder="e.g. ownership.md")
     with filter_cols[2]:
-        section_path_contains = st.text_input("Section contains")
-
-if st.button("Search", type="primary"):
-    st.session_state["run_search"] = True
+        section_path_contains = st.text_input("Section contains", placeholder="e.g. Borrowing")
 
 if st.session_state.get("run_search"):
-    if not query.strip():
+    if not query:
         st.info("Enter a question to search.")
     else:
         with st.spinner("Searching..."):
             hits = retriever.retrieve(
                 RetrievalRequest(
-                    query=query.strip(),
+                    query=query,
                     top_k=top_k,
                     mode=search_mode,
                     candidate_k=settings.candidate_k,
-                    filters=_build_metadata_filter(
+                    filters=_build_path_filter(
                         source_contains,
                         source_suffix,
                         section_path_contains,

@@ -42,6 +42,8 @@ class MetadataFilterStage:
         with get_tracer(__name__).start_as_current_span("retriever.filter") as span:
             mark_chain_span(span)
             span.set_attribute("input_count", len(results))
-            filtered = [result for result in results if matches_filter(result.chunk.metadata, request.filters)]
+            filtered = [
+                result for result in results if matches_filter(result.chunk.metadata, request.filters)
+            ]
             span.set_attribute("output_count", len(filtered))
             return filtered
