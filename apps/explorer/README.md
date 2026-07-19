@@ -26,7 +26,7 @@ uv run explorer eval --search-mode hybrid --rerank
 uv run explorer eval --llm   # optional LLM relevance scoring (LLM_API_KEY)
 ```
 
-Ingest picks up `.md` and `.pdf` files recursively. PDFs use the text layer only (no OCR). Configure defaults via `.env` (`INGEST_SOURCE_DIR`, `INGEST_SKIP_FILES`, search/embedding/rerank settings) — see the workspace [`.env.example`](../../.env.example).
+Ingest picks up `.md` and `.pdf` files recursively. PDFs use pymupdf4llm (layout-aware markdown, OCR off). Configure defaults via `.env` (`INGEST_SOURCE_DIR`, `INGEST_SKIP_FILES`, search/embedding/rerank settings) — see the workspace [`.env.example`](../../.env.example).
 
 ## Deploy (Streamlit Community Cloud)
 

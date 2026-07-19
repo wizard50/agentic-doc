@@ -48,7 +48,7 @@ uv run explorer eval                            # retrieval benchmark against go
 **Ingest** indexes under the source directory:
 
 - **Markdown** (`.md`) — header-aware chunking  
-- **PDF** (`.pdf`) — embedded text layer only (no OCR); empty pages skipped  
+- **PDF** (`.pdf`) — pymupdf4llm layout-aware markdown extraction (OCR off); empty pages skipped  
 
 Defaults are controlled by `INGEST_SOURCE_DIR` and `INGEST_SKIP_FILES` (see `.env.example`). CLI flags `--source` and `--skip` override those for a single run.
 
