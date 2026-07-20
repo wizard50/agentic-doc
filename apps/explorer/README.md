@@ -2,6 +2,8 @@
 
 M1 portfolio app — **Streamlit search UI** and **ingestion / eval CLI** for the Agentic RAG system.
 
+**Live demo:** [https://doc-explorer.streamlit.app/](https://doc-explorer.streamlit.app/)
+
 ## Run from the workspace root
 
 ```bash
@@ -37,6 +39,7 @@ Ingest picks up `.md` and `.pdf` files recursively. PDFs use pymupdf4llm (layout
 
 ## Deploy (Streamlit Community Cloud)
 
+- **Live app:** [https://doc-explorer.streamlit.app/](https://doc-explorer.streamlit.app/)
 - **Main file:** `apps/explorer/src/agentic_doc_explorer/app.py`
 - **Working directory:** repository root
 - Demo markdown is under `corpora/rust-book/`; no shell access is required for ingest

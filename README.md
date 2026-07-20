@@ -2,6 +2,8 @@
 
 Production-grade Agentic RAG for technical documentation — with observability, evaluation, and clean architecture.
 
+**Live demo:** [Doc Explorer](https://doc-explorer.streamlit.app/) — M1 RAG search over the Rust book.
+
 The workspace is **domain-agnostic**: packages and apps are built to work with technical documentation corpora (Markdown, PDFs, and similar). For local development, [The Rust Programming Language](https://github.com/rust-lang/book) is the reference corpus.
 
 See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
@@ -34,6 +36,8 @@ uv run ty check
 ```
 
 ## M1 explorer
+
+**Live demo:** [https://doc-explorer.streamlit.app/](https://doc-explorer.streamlit.app/)
 
 ![Doc Explorer search UI](assets/doc-explorer-screenhot.png)
 
