@@ -7,11 +7,19 @@ from agentic_doc_explorer.constants import (
     PHOENIX_UI_URL,
     PREVIEW_LENGTH,
 )
+from agentic_doc_explorer.startup_ingest import maybe_run_startup_ingest
 from agentic_doc_explorer.workspace import require_workspace_root
-from agentic_doc_rag.config import get_rag_settings
+from agentic_doc_rag.config import RagSettings, get_rag_settings
+from agentic_doc_rag.ingest import IngestEmptyCorpusError, IngestSourceNotFoundError
 from agentic_doc_rag.models import SearchResult
 from agentic_doc_rag.observability import register_tracing
-from agentic_doc_rag.retrieval import MetadataFilter, RetrievalRequest, SearchMode, create_retriever
+from agentic_doc_rag.retrieval import (
+    MetadataFilter,
+    RetrievalRequest,
+    Retriever,
+    SearchMode,
+    create_retriever,
+)
 
 register_tracing(get_phoenix_settings())
 require_workspace_root("explorer")
@@ -27,13 +35,13 @@ st.caption("Semantic search over technical documentation — Milestone 1 RAG cor
 
 
 @st.cache_resource
-def _retriever():
-    return create_retriever(get_rag_settings())
-
-
-@st.cache_resource
-def _settings():
-    return get_rag_settings()
+def _bootstrap() -> tuple[RagSettings, Retriever, str | None]:
+    settings = get_rag_settings()
+    try:
+        maybe_run_startup_ingest(settings)
+    except (IngestSourceNotFoundError, IngestEmptyCorpusError, OSError) as exc:
+        return settings, create_retriever(settings), str(exc)
+    return settings, create_retriever(settings), None
 
 
 def _build_path_filter(
@@ -67,9 +75,47 @@ def _render_hit(hit: SearchResult, index: int) -> None:
             st.markdown(text)
 
 
-settings = _settings()
+def _render_empty_corpus(settings: RagSettings, error: str | None) -> None:
+    st.warning("Collection is empty — nothing is indexed yet.")
+    if error:
+        st.error(error)
+
+    st.caption(
+        f"Source: `{settings.ingest_source_dir}` · "
+        f"Chroma: `{settings.chroma_persist_dir}` · "
+        f"BM25: `{settings.bm25_persist_dir}`"
+    )
+
+    if settings.ingest_on_startup:
+        st.markdown(
+            "Startup ingest is **enabled** (`INGEST_ON_STARTUP`), but the collection is still empty. "
+            "Confirm the source path above exists on this host, check the logs, then **reboot** the app. "
+            "First build can take several minutes on free-tier hosts."
+        )
+        return
+
+    st.markdown("#### Local development")
+    st.code(
+        "uv run explorer ingest\n# or:\nuv run explorer ingest --source corpora/rust-book/src",
+        language="bash",
+    )
+
+    st.markdown("#### Streamlit Cloud / Docker")
+    st.markdown(
+        "Shell commands are not available on Streamlit Cloud. "
+        "Set **secrets** (or env vars) and reboot so the app can index "
+        "`corpora/rust-book` on first start:"
+    )
+    st.code(
+        'INGEST_ON_STARTUP = "true"\nINGEST_SOURCE_DIR = "corpora/rust-book/src"',
+        language="toml",
+    )
+
+
+with st.spinner("Loading index (first start may build the demo corpus)..."):
+    settings, retriever, startup_error = _bootstrap()
+
 phoenix_settings = get_phoenix_settings()
-retriever = _retriever()
 document_count = retriever.count()
 
 with st.sidebar:
@@ -77,6 +123,8 @@ with st.sidebar:
     st.metric("Chunks indexed", document_count)
     st.text(f"Collection: {settings.chroma_collection_name}")
     st.text(f"Store: {settings.chroma_persist_dir}")
+    if settings.ingest_on_startup:
+        st.caption("INGEST_ON_STARTUP is enabled")
     top_k = st.slider("Results (top-k)", min_value=1, max_value=10, value=DEFAULT_TOP_K)
     search_mode = st.selectbox(
         "Search mode",
@@ -100,8 +148,7 @@ with st.sidebar:
             st.session_state["run_search"] = True
 
 if document_count == 0:
-    st.warning("Collection is empty. Index the corpus first:")
-    st.code("uv run explorer ingest", language="bash")
+    _render_empty_corpus(settings, startup_error)
     st.stop()
 
 # Form so Enter in the query field submits (same as clicking Search).
