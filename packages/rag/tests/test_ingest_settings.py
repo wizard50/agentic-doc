@@ -22,7 +22,7 @@ def test_parse_skip_files_returns_empty_for_blank_value() -> None:
 def test_ingest_settings_from_rag_uses_defaults() -> None:
     settings = ingest_settings_from_rag(RagSettings())
 
-    assert settings.source_dir == Path("data/download/rust-book/src")
+    assert settings.source_dir == Path("corpora/rust-book/src")
     assert settings.skip_files == frozenset({"SUMMARY.md", "title-page.md"})
     assert settings.chunk_size == 1500
     assert settings.chunk_overlap == 200

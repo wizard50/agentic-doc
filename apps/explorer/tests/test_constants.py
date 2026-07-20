@@ -12,7 +12,7 @@ def test_example_queries_defined() -> None:
 def test_default_ingest_settings_use_rust_book_paths() -> None:
     settings = ingest_settings_from_rag(RagSettings())
 
-    assert settings.source_dir == Path("data/download/rust-book/src")
+    assert settings.source_dir == Path("corpora/rust-book/src")
     assert "SUMMARY.md" in settings.skip_files
 
 

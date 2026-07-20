@@ -22,5 +22,6 @@ def test_embedding_defaults() -> None:
 
 def test_ingest_defaults() -> None:
     settings = RagSettings()
-    assert settings.ingest_source_dir == Path("data/download/rust-book/src")
+    assert settings.ingest_source_dir == Path("corpora/rust-book/src")
     assert settings.ingest_skip_files == "SUMMARY.md,title-page.md"
+    assert settings.ingest_on_startup is False
