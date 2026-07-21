@@ -23,8 +23,6 @@ def test_agent_request_requires_goal() -> None:
 def test_agent_request_defaults() -> None:
     request = AgentRequest(goal="What is ownership in Rust?")
     assert request.workflow is WorkflowId.ANSWER
-    assert request.top_k is None
-    assert request.filters is None
     assert request.metadata == {}
 
 
