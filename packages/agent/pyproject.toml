@@ -1,0 +1,22 @@
+[project]
+name = "agentic-doc-agent"
+version = "0.1.0"
+description = "Agentic intelligence layer — LangGraph workflows, tools, grounded generation, and evaluation."
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    "agentic-doc-core",
+    "agentic-doc-rag",
+    "langgraph>=0.4.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.14.2",
+]
+
+[tool.uv.sources]
+agentic-doc-core = { workspace = true }
+agentic-doc-rag = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.11.23,<0.12.0"]
+build-backend = "uv_build"

@@ -14,6 +14,7 @@ See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
 packages/
   core/     # Shared config and foundational types
   rag/      # RAG retrieval layer (ingest, parsers, retrieval, eval)
+  agent/    # M2 agentic layer (LangGraph workflows, tools, generation eval)
 apps/
   explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
 ```
