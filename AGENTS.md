@@ -20,6 +20,8 @@ Build agentic capabilities on top of the completed M1 documentation RAG core:
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
+**M2 library:** Prefer `from agentic_doc_agent import ...` for agent workflows (`packages/agent`).
+
 ## Milestones
 
 ### Milestone 1 – RAG Core (Foundation) ← Closed
