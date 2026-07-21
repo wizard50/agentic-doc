@@ -5,8 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from agentic_doc_rag.models import SearchMode, SearchResult
-from agentic_doc_rag.retrieval import MetadataFilter
+from agentic_doc_rag.models import SearchResult
 
 
 class WorkflowId(StrEnum):
@@ -67,14 +66,14 @@ class AgentMetrics(BaseModel):
 
 
 class AgentRequest(BaseModel):
-    """Input to run_workflow()."""
+    """Input to run_workflow() — user/app intent for a single agent run.
+
+    Retrieval knobs (top_k, mode, filters, rerank) are not part of this contract;
+    the graph and RetrieveTool choose those per tool call (see AgentSettings defaults).
+    """
 
     workflow: WorkflowId = WorkflowId.ANSWER
     goal: str = Field(..., min_length=1, description="User goal or question")
-    top_k: int | None = Field(default=None, ge=1)
-    search_mode: SearchMode | None = None
-    filters: MetadataFilter | None = None
-    rerank: bool | None = None
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Optional app-specific context (not used by core runtime yet)",

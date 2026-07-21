@@ -14,6 +14,9 @@ def test_public_api_exports_core_symbols() -> None:
     assert agent.StepEvent is not None
     assert agent.StepKind is not None
     assert agent.AgentMetrics is not None
+    assert agent.RetrieveTool is not None
+    assert agent.RetrieveArgs is not None
+    assert agent.RetrieveResult is not None
     assert callable(agent.get_agent_settings)
     assert callable(agent.list_workflows)
     assert callable(agent.run_workflow)

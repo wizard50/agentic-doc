@@ -16,7 +16,7 @@ src/agentic_doc_agent/
   models.py          # AgentRequest, AgentResult, WorkflowId, citations, steps
   runtime.py         # run_workflow(), list_workflows()
   llm/               # LLM client + prompts (stub)
-  tools/             # Tool protocol + retrieve wrapper (stub)
+  tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
   graphs/            # LangGraph workflows + shared state (stub)
   evaluation/        # Faithfulness and generation eval (stub)
   observability/     # Tracing helpers (stub)
@@ -31,11 +31,16 @@ from agentic_doc_agent import (
     AgentRequest,
     AgentResult,
     AgentSettings,
+    RetrieveTool,
     WorkflowId,
     get_agent_settings,
     list_workflows,
     run_workflow,
 )
+
+# Retrieve tool (inject an M1 Retriever)
+# tool = RetrieveTool(create_retriever(get_rag_settings()))
+# result = tool.invoke(query="What is ownership?", top_k=5)
 ```
 
 ## Dependencies
