@@ -9,6 +9,7 @@ dependencies = [
     "agentic-doc-core",
     "agentic-doc-rag",
     "langgraph>=0.4.0",
+    "openai>=1.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.14.2",
 ]

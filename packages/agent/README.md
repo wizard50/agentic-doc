@@ -15,7 +15,7 @@ src/agentic_doc_agent/
   config.py          # AgentSettings
   models.py          # AgentRequest, AgentResult, WorkflowId, citations, steps
   runtime.py         # run_workflow(), list_workflows()
-  llm/               # LLM client + prompts (stub)
+  llm/               # OpenAI-compatible LlmClient (complete)
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
   graphs/            # LangGraph workflows + shared state (stub)
   evaluation/        # Faithfulness and generation eval (stub)
@@ -31,8 +31,11 @@ from agentic_doc_agent import (
     AgentRequest,
     AgentResult,
     AgentSettings,
+    ChatMessage,
+    ChatRole,
     RetrieveTool,
     WorkflowId,
+    create_llm_client,
     get_agent_settings,
     list_workflows,
     run_workflow,
@@ -41,6 +44,10 @@ from agentic_doc_agent import (
 # Retrieve tool (inject an M1 Retriever)
 # tool = RetrieveTool(create_retriever(get_rag_settings()))
 # result = tool.invoke(query="What is ownership?", top_k=5)
+
+# LLM client (requires LLM_API_KEY; optional LLM_BASE_URL for OpenRouter-compatible APIs)
+# llm = create_llm_client()
+# out = llm.complete([ChatMessage(role=ChatRole.USER, content="Summarize ownership")])
 ```
 
 ## Dependencies

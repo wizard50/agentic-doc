@@ -64,6 +64,7 @@ dependencies = [
     { name = "agentic-doc-core" },
     { name = "agentic-doc-rag" },
     { name = "langgraph" },
+    { name = "openai" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
 ]
@@ -73,6 +74,7 @@ requires-dist = [
     { name = "agentic-doc-core", editable = "packages/core" },
     { name = "agentic-doc-rag", editable = "packages/rag" },
     { name = "langgraph", specifier = ">=0.4.0" },
+    { name = "openai", specifier = ">=1.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
 ]
