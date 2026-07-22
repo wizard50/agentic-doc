@@ -1,5 +1,3 @@
-import pytest
-
 import agentic_doc_agent as agent
 from agentic_doc_agent import AgentRequest, WorkflowId
 
@@ -43,7 +41,9 @@ def test_list_workflows_returns_all_ids() -> None:
     assert set(workflows) == set(WorkflowId)
 
 
-def test_run_workflow_not_implemented_yet() -> None:
-    request = AgentRequest(goal="Explain borrowing", workflow=WorkflowId.ANSWER)
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        agent.run_workflow(request)
+def test_run_workflow_unimplemented_workflow_fails_cleanly() -> None:
+    request = AgentRequest(goal="Compare types", workflow=WorkflowId.COMPARE)
+    result = agent.run_workflow(request)
+    assert result.status.value == "failed"
+    assert result.error is not None
+    assert "not implemented" in result.error
