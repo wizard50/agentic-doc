@@ -15,7 +15,7 @@ src/agentic_doc_agent/
   config.py          # AgentSettings
   models.py          # AgentRequest, AgentResult, WorkflowId, citations, steps
   runtime.py         # run_workflow(), list_workflows()
-  llm/               # OpenAI-compatible LlmClient (complete)
+  llm/               # OpenAI-compatible LlmClient (complete + complete_structured)
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
   graphs/            # LangGraph workflows + shared state (stub)
   evaluation/        # Faithfulness and generation eval (stub)
@@ -48,6 +48,7 @@ from agentic_doc_agent import (
 # LLM client (requires LLM_API_KEY; optional LLM_BASE_URL for OpenRouter-compatible APIs)
 # llm = create_llm_client()
 # out = llm.complete([ChatMessage(role=ChatRole.USER, content="Summarize ownership")])
+# typed = llm.complete_structured(messages, MyPydanticModel)
 ```
 
 ## Dependencies

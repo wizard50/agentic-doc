@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from openai import APIError
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from agentic_doc_agent.config import AgentSettings
 from agentic_doc_agent.llm import (
@@ -18,6 +18,11 @@ from agentic_doc_agent.llm import (
     OpenAICompatibleClient,
     create_llm_client,
 )
+
+
+class _Joke(BaseModel):
+    setup: str
+    punchline: str = Field(min_length=1)
 
 
 def _messages() -> list[ChatMessage]:
@@ -161,3 +166,72 @@ def test_create_llm_client_uses_settings(
 def test_chat_message_rejects_empty_content() -> None:
     with pytest.raises(ValidationError):
         ChatMessage(role=ChatRole.USER, content="")
+
+
+def test_complete_structured_happy_path() -> None:
+    payload = '{"setup": "Why did the chicken cross the road?", "punchline": "To get to the other side."}'
+    client, mock_openai = _client_with_mock(create_return=_fake_response(content=payload))
+
+    joke = client.complete_structured(_messages(), _Joke)
+
+    assert isinstance(joke, _Joke)
+    assert joke.setup.startswith("Why did")
+    assert "other side" in joke.punchline
+
+    kwargs = mock_openai.chat.completions.create.call_args.kwargs
+    assert kwargs["model"] == "gpt-4o-mini"
+    assert kwargs["temperature"] == 0.0
+    assert kwargs["response_format"]["type"] == "json_schema"
+    assert kwargs["response_format"]["json_schema"]["name"] == "_Joke"
+    assert kwargs["response_format"]["json_schema"]["schema"]["title"] == "_Joke"
+    assert kwargs["response_format"]["json_schema"]["strict"] is False
+
+
+def test_complete_structured_overrides_model_and_temperature() -> None:
+    payload = '{"setup": "Q", "punchline": "A"}'
+    client, mock_openai = _client_with_mock(create_return=_fake_response(content=payload))
+
+    client.complete_structured(
+        _messages(),
+        _Joke,
+        model="openai/gpt-4o",
+        temperature=0.2,
+    )
+
+    kwargs = mock_openai.chat.completions.create.call_args.kwargs
+    assert kwargs["model"] == "openai/gpt-4o"
+    assert kwargs["temperature"] == 0.2
+    assert "response_format" in kwargs
+
+
+def test_complete_structured_invalid_json_raises() -> None:
+    client, _ = _client_with_mock(create_return=_fake_response(content="not-json"))
+
+    with pytest.raises(LlmResponseError, match="schema validation"):
+        client.complete_structured(_messages(), _Joke)
+
+
+def test_complete_structured_wrong_shape_raises() -> None:
+    client, _ = _client_with_mock(create_return=_fake_response(content='{"setup": "only"}'))
+
+    with pytest.raises(LlmResponseError, match="schema validation"):
+        client.complete_structured(_messages(), _Joke)
+
+
+def test_complete_structured_empty_content_raises() -> None:
+    client, _ = _client_with_mock(create_return=_fake_response(content=" "))
+
+    with pytest.raises(LlmResponseError, match="empty assistant content"):
+        client.complete_structured(_messages(), _Joke)
+
+
+def test_complete_structured_rejects_empty_messages() -> None:
+    client, _ = _client_with_mock()
+    with pytest.raises(LlmConfigError, match="non-empty"):
+        client.complete_structured([], _Joke)
+
+
+def test_complete_does_not_send_response_format() -> None:
+    client, mock_openai = _client_with_mock()
+    client.complete(_messages())
+    assert "response_format" not in mock_openai.chat.completions.create.call_args.kwargs
