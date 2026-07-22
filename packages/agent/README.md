@@ -17,7 +17,7 @@ src/agentic_doc_agent/
   runtime.py         # run_workflow(), list_workflows()
   llm/               # OpenAI-compatible LlmClient (complete + complete_structured)
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
-  graphs/            # LangGraph workflows + shared state (stub)
+  graphs/            # AnswerDraft + prompts; LangGraph workflows next
   evaluation/        # Faithfulness and generation eval (stub)
   observability/     # Tracing helpers (stub)
 ```
