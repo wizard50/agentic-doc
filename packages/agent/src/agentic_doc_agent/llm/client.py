@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 from openai import APIError, OpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from pydantic import BaseModel, ValidationError
 
 from agentic_doc_agent.config import AgentSettings, get_agent_settings
 from agentic_doc_agent.llm.models import (
@@ -16,6 +17,8 @@ from agentic_doc_agent.llm.models import (
     LlmResponseError,
     TokenUsage,
 )
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class OpenAICompatibleClient:
@@ -45,6 +48,58 @@ class OpenAICompatibleClient:
         model: str | None = None,
         temperature: float | None = None,
     ) -> ChatResult:
+        response, resolved_model = self._create_completion(
+            messages,
+            model=model,
+            temperature=temperature,
+        )
+        content = _assistant_content_from_response(response)
+        usage = _token_usage_from_response(response)
+        response_model = getattr(response, "model", None) or resolved_model
+        return ChatResult(content=content, model=str(response_model), usage=usage)
+
+    def complete_structured(
+        self,
+        messages: list[ChatMessage],
+        schema: type[T],
+        *,
+        model: str | None = None,
+        temperature: float | None = None,
+    ) -> T:
+        """Run a chat completion and parse the assistant content as ``schema``."""
+        if not issubclass(schema, BaseModel):
+            raise LlmConfigError("schema must be a pydantic BaseModel subclass")
+
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": _schema_name(schema),
+                "schema": schema.model_json_schema(),
+                "strict": False,
+            },
+        }
+        response, _resolved_model = self._create_completion(
+            messages,
+            model=model,
+            temperature=temperature,
+            response_format=response_format,
+        )
+        content = _assistant_content_from_response(response)
+        try:
+            return schema.model_validate_json(content)
+        except ValidationError as exc:
+            raise LlmResponseError(
+                f"LLM response failed schema validation for {schema.__name__}: {exc}"
+            ) from exc
+
+    def _create_completion(
+        self,
+        messages: list[ChatMessage],
+        *,
+        model: str | None,
+        temperature: float | None,
+        response_format: dict[str, Any] | None = None,
+    ) -> tuple[Any, str]:
         if not messages:
             raise LlmConfigError("messages must be a non-empty list")
 
@@ -52,26 +107,23 @@ class OpenAICompatibleClient:
         resolved_temperature = (
             temperature if temperature is not None else self._default_temperature
         )
-        payload: list[ChatCompletionMessageParam] = [
-            cast(
-                ChatCompletionMessageParam,
-                {"role": message.role.value, "content": message.content},
-            )
-            for message in messages
-        ]
+        payload = _messages_payload(messages)
+        create_kwargs: dict[str, Any] = {
+            "model": resolved_model,
+            "messages": payload,
+            "temperature": resolved_temperature,
+        }
+        if response_format is not None:
+            create_kwargs["response_format"] = response_format
 
         try:
-            response = self._client.chat.completions.create(
-                model=resolved_model,
-                messages=payload,
-                temperature=resolved_temperature,
-            )
+            response = self._client.chat.completions.create(**create_kwargs)
         except APIError as exc:
             raise LlmRequestError(f"LLM request failed: {exc}") from exc
         except Exception as exc:
             raise LlmRequestError(f"LLM request failed: {exc}") from exc
 
-        return _chat_result_from_response(response, fallback_model=resolved_model)
+        return response, resolved_model
 
 
 def create_llm_client(
@@ -96,7 +148,24 @@ def create_llm_client(
     )
 
 
-def _chat_result_from_response(response: Any, *, fallback_model: str) -> ChatResult:
+def _messages_payload(messages: list[ChatMessage]) -> list[ChatCompletionMessageParam]:
+    return [
+        cast(
+            ChatCompletionMessageParam,
+            {"role": message.role.value, "content": message.content},
+        )
+        for message in messages
+    ]
+
+
+def _schema_name(schema: type[BaseModel]) -> str:
+    name = schema.__name__
+    # OpenAI json_schema names: a-z, A-Z, 0-9, underscores, dashes; max 64.
+    cleaned = "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in name)
+    return (cleaned or "response")[:64]
+
+
+def _assistant_content_from_response(response: Any) -> str:
     choices = getattr(response, "choices", None) or []
     if not choices:
         raise LlmResponseError("LLM response contained no choices")
@@ -105,10 +174,7 @@ def _chat_result_from_response(response: Any, *, fallback_model: str) -> ChatRes
     content = getattr(message, "content", None) if message is not None else None
     if content is None or not str(content).strip():
         raise LlmResponseError("LLM response contained empty assistant content")
-
-    model = getattr(response, "model", None) or fallback_model
-    usage = _token_usage_from_response(response)
-    return ChatResult(content=str(content), model=str(model), usage=usage)
+    return str(content)
 
 
 def _token_usage_from_response(response: Any) -> TokenUsage | None:
