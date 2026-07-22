@@ -17,6 +17,16 @@ def test_public_api_exports_core_symbols() -> None:
     assert agent.RetrieveTool is not None
     assert agent.RetrieveArgs is not None
     assert agent.RetrieveResult is not None
+    assert agent.LlmClient is not None
+    assert agent.ChatMessage is not None
+    assert agent.ChatResult is not None
+    assert agent.ChatRole is not None
+    assert agent.TokenUsage is not None
+    assert agent.LlmError is not None
+    assert agent.LlmConfigError is not None
+    assert agent.LlmRequestError is not None
+    assert agent.LlmResponseError is not None
+    assert callable(agent.create_llm_client)
     assert callable(agent.get_agent_settings)
     assert callable(agent.list_workflows)
     assert callable(agent.run_workflow)
