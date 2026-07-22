@@ -17,7 +17,7 @@ src/agentic_doc_agent/
   runtime.py         # run_workflow(), list_workflows()
   llm/               # OpenAI-compatible LlmClient (complete + complete_structured)
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
-  graphs/            # AnswerDraft + prompts; LangGraph workflows next
+  graphs/            # Answer workflow (prompts, nodes, compiled LangGraph)
   evaluation/        # Faithfulness and generation eval (stub)
   observability/     # Tracing helpers (stub)
 ```
@@ -40,6 +40,10 @@ from agentic_doc_agent import (
     list_workflows,
     run_workflow,
 )
+
+# End-to-end answer workflow (inject fakes in tests; defaults use RAG + LLM env)
+# result = run_workflow(AgentRequest(goal="What is ownership?"))
+# # or: run_workflow(request, retrieve_tool=..., llm=...)
 
 # Retrieve tool (inject an M1 Retriever)
 # tool = RetrieveTool(create_retriever(get_rag_settings()))
