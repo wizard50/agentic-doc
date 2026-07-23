@@ -36,6 +36,25 @@ uv run ruff check .
 uv run ty check
 ```
 
+## M2 agent (Answer workflow)
+
+The `packages/agent` library exposes a grounded **Answer** path: retrieve from the M1 index, then generate a structured answer with citations.
+
+```bash
+uv run explorer ingest                              # required — empty index → 0 retrieved chunks
+# set LLM_API_KEY in .env (optional LLM_BASE_URL / LLM_MODEL for OpenRouter, etc.)
+uv run python scripts/smoke_answer.py               # live smoke; prints full answer
+```
+
+```python
+from agentic_doc_agent import AgentRequest, run_workflow
+
+result = run_workflow(AgentRequest(goal="What is ownership in Rust?"))
+print(result.status, result.answer)
+```
+
+Details: [`packages/agent/README.md`](packages/agent/README.md). Compare/gap workflows, faithfulness metrics, and an agent UI are not shipped yet.
+
 ## M1 explorer
 
 **Live demo:** [https://doc-explorer.streamlit.app/](https://doc-explorer.streamlit.app/)

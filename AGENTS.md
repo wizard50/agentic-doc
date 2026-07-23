@@ -20,7 +20,7 @@ Build agentic capabilities on top of the completed M1 documentation RAG core:
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
-**M2 library:** Prefer `from agentic_doc_agent import ...` for agent workflows (`packages/agent`).
+**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is implemented (LangGraph retrieve → generate). Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`).
 
 ## Milestones
 
@@ -40,10 +40,11 @@ Delivered documentation RAG:
 ### Milestone 2 – Agentic Intelligence Layer ← Current
 - Agentic capabilities on top of Milestone 1
 - Multi-step reasoning, planning, and tool use (LangGraph)
+- **Answer workflow:** `run_workflow(AgentRequest(...))` — retrieve tool + structured generation
 - Answer generation grounded in retrieved context
-- Faithfulness and related answer-quality metrics
+- Faithfulness and related answer-quality metrics (planned)
 - Structured outputs with Pydantic models
-- Developer-focused workflows (analysis, comparison, gap detection, report generation)
+- Developer-focused workflows (analysis, comparison, gap detection, report generation) — Answer done; others planned
 - Focus on Software Engineering / technical documentation domain
 
 ### Milestone 3 – Production Backend
