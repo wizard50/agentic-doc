@@ -121,7 +121,9 @@ def _default_retrieve_tool(
     settings: AgentSettings,
     retriever: Retriever | None,
 ) -> RetrieveTool:
-    resolved_retriever = retriever if retriever is not None else create_retriever(get_rag_settings())
+    resolved_retriever = (
+        retriever if retriever is not None else create_retriever(get_rag_settings())
+    )
     return RetrieveTool(resolved_retriever, default_top_k=settings.default_top_k)
 
 

@@ -62,9 +62,9 @@ class Bm25Index:
                 return []
 
             scores = self._bm25.get_scores(query_tokens)
-            top_indices = sorted(
-                range(len(scores)), key=lambda index: scores[index], reverse=True
-            )[:k]
+            top_indices = sorted(range(len(scores)), key=lambda index: scores[index], reverse=True)[
+                :k
+            ]
             search_results = [
                 SearchResult(chunk=self._chunks[index], score=float(scores[index]))
                 for index in top_indices

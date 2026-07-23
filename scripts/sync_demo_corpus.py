@@ -39,10 +39,7 @@ def _upstream_revision(source: Path) -> str | None:
 def sync_demo_corpus(source: Path, dest: Path) -> None:
     src_dir = source / "src"
     if not src_dir.is_dir():
-        msg = (
-            f"Missing {src_dir}. Clone or update the book first:\n"
-            "  python scripts/download.py"
-        )
+        msg = f"Missing {src_dir}. Clone or update the book first:\n  python scripts/download.py"
         raise FileNotFoundError(msg)
 
     dest.mkdir(parents=True, exist_ok=True)

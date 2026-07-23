@@ -22,7 +22,9 @@ class RetrieveArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     query: str = Field(..., min_length=1, description="Search query")
-    top_k: int | None = Field(default=None, ge=1, description="Max results (uses tool default if omitted)")
+    top_k: int | None = Field(
+        default=None, ge=1, description="Max results (uses tool default if omitted)"
+    )
     search_mode: SearchMode | None = Field(
         default=None,
         description="semantic | keyword | hybrid (uses tool default if omitted)",

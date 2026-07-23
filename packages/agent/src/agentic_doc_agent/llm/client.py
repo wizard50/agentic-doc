@@ -104,9 +104,7 @@ class OpenAICompatibleClient:
             raise LlmConfigError("messages must be a non-empty list")
 
         resolved_model = model if model is not None else self._default_model
-        resolved_temperature = (
-            temperature if temperature is not None else self._default_temperature
-        )
+        resolved_temperature = temperature if temperature is not None else self._default_temperature
         payload = _messages_payload(messages)
         create_kwargs: dict[str, Any] = {
             "model": resolved_model,

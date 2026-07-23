@@ -63,7 +63,6 @@ def test_make_chunk_id_is_stable_and_short() -> None:
     assert len(first) == 16
 
 
-
 def test_chunk_markdown_text_adds_metadata_and_ids() -> None:
     text = """## Ownership
 

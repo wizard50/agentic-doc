@@ -8,7 +8,9 @@ def discover_files(
     extensions: frozenset[str],
 ) -> list[Path]:
     """Return sorted source files under root matching extensions, excluding skip names."""
-    allowed = {ext.casefold() if ext.startswith(".") else f".{ext.casefold()}" for ext in extensions}
+    allowed = {
+        ext.casefold() if ext.startswith(".") else f".{ext.casefold()}" for ext in extensions
+    }
     files: list[Path] = []
     for path in sorted(source_dir.rglob("*")):
         if not path.is_file():

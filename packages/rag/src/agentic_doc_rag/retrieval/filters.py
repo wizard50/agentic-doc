@@ -43,7 +43,9 @@ class MetadataFilterStage:
             mark_chain_span(span)
             span.set_attribute("input_count", len(results))
             filtered = [
-                result for result in results if matches_filter(result.chunk.metadata, request.filters)
+                result
+                for result in results
+                if matches_filter(result.chunk.metadata, request.filters)
             ]
             span.set_attribute("output_count", len(filtered))
             return filtered
