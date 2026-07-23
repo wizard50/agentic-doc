@@ -6,6 +6,13 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from agentic_doc_agent.observability.tracing import (
+    get_tracer,
+    mark_tool_span,
+    record_exception,
+    set_input_value,
+    set_output_value,
+)
 from agentic_doc_rag.models import SearchMode, SearchResult
 from agentic_doc_rag.retrieval import MetadataFilter, RetrievalRequest, Retriever
 
@@ -73,12 +80,25 @@ class RetrieveTool:
 
     def invoke_args(self, args: RetrieveArgs) -> RetrieveResult:
         """Run retrieval from a validated args model."""
-        request = RetrievalRequest(
-            query=args.query,
-            mode=args.search_mode if args.search_mode is not None else self._default_search_mode,
-            top_k=args.top_k if args.top_k is not None else self._default_top_k,
-            filters=args.filters,
-            rerank=args.rerank,
-        )
-        results = self._retriever.retrieve(request)
-        return RetrieveResult(query=args.query, results=results, count=len(results))
+        with get_tracer(__name__).start_as_current_span("agent.tool.retrieve") as span:
+            mark_tool_span(span, name=self.name)
+            set_input_value(span, args.query)
+            top_k = args.top_k if args.top_k is not None else self._default_top_k
+            span.set_attribute("top_k", top_k)
+            request = RetrievalRequest(
+                query=args.query,
+                mode=(
+                    args.search_mode if args.search_mode is not None else self._default_search_mode
+                ),
+                top_k=top_k,
+                filters=args.filters,
+                rerank=args.rerank,
+            )
+            try:
+                results = self._retriever.retrieve(request)
+            except Exception as exc:
+                record_exception(span, exc)
+                raise
+            span.set_attribute("result_count", len(results))
+            set_output_value(span, f"{len(results)} result(s)")
+            return RetrieveResult(query=args.query, results=results, count=len(results))
