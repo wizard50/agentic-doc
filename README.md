@@ -53,7 +53,7 @@ result = run_workflow(AgentRequest(goal="What is ownership in Rust?"))
 print(result.status, result.answer)
 ```
 
-Details: [`packages/agent/README.md`](packages/agent/README.md). Compare/gap workflows, faithfulness metrics, and an agent UI are not shipped yet.
+Details: [`packages/agent/README.md`](packages/agent/README.md). Answer runs can score faithfulness (`FAITHFULNESS_ENABLED`, default on). Compare/gap workflows and an agent UI are not shipped yet.
 
 ## M1 explorer
 

@@ -2,9 +2,11 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
+from agentic_doc_agent.evaluation import FaithfulnessVerdict
 from agentic_doc_agent.graphs.answer_models import AnswerDraft
 from agentic_doc_agent.graphs.answer_nodes import (
     citations_from_draft,
+    run_answer_evaluate,
     run_answer_generate,
     run_answer_retrieve,
 )
@@ -44,10 +46,14 @@ class FakeLlm:
         self,
         draft: AnswerDraft | None = None,
         *,
+        verdict: FaithfulnessVerdict | None = None,
         error: Exception | None = None,
+        evaluate_error: Exception | None = None,
     ) -> None:
         self._draft = draft
+        self._verdict = verdict
         self._error = error
+        self._evaluate_error = evaluate_error
         self.structured_calls: list[tuple[list[ChatMessage], type[BaseModel]]] = []
 
     def complete(
@@ -68,11 +74,16 @@ class FakeLlm:
         temperature: float | None = None,
     ) -> T:
         self.structured_calls.append((messages, schema))
+        if schema is FaithfulnessVerdict:
+            if self._evaluate_error is not None:
+                raise self._evaluate_error
+            if self._verdict is None:
+                raise RuntimeError("FakeLlm has no verdict configured")
+            return schema.model_validate(self._verdict.model_dump())
         if self._error is not None:
             raise self._error
         if self._draft is None:
             raise RuntimeError("FakeLlm has no draft configured")
-        # Re-validate so the return type is schema/T, not a fixed AnswerDraft.
         return schema.model_validate(self._draft.model_dump())
 
 
@@ -173,3 +184,65 @@ def test_citations_from_draft_drops_unknown_and_dedupes() -> None:
     draft = AnswerDraft(answer="x", citation_chunk_ids=["z", "a", "a", "nope"])
     citations = citations_from_draft(draft, [_hit("a"), _hit("b")])
     assert [c.chunk_id for c in citations] == ["a"]
+
+
+def test_run_answer_evaluate_happy_path() -> None:
+    verdict = FaithfulnessVerdict(score=0.9, explanation="Well grounded.")
+    llm = FakeLlm(verdict=verdict)
+    initial = _state().model_copy(
+        update={
+            "retrieved": [_hit("a", "own")],
+            "draft_answer": "Each value has one owner.",
+        }
+    )
+
+    state = run_answer_evaluate(initial, llm)
+
+    assert state.faithfulness == 0.9
+    assert state.steps[-1].kind is StepKind.EVALUATE
+    assert state.steps[-1].name == "evaluate"
+    assert state.steps[-1].payload["faithfulness"] == 0.9
+    assert state.steps[-1].payload["explanation"] == "Well grounded."
+    assert len(llm.structured_calls) == 1
+    assert llm.structured_calls[0][1] is FaithfulnessVerdict
+
+
+def test_run_answer_evaluate_disabled_is_noop() -> None:
+    llm = FakeLlm(verdict=FaithfulnessVerdict(score=1.0, explanation="n/a"))
+    initial = _state().model_copy(update={"draft_answer": "answer"})
+
+    state = run_answer_evaluate(initial, llm, enabled=False)
+
+    assert state.faithfulness is None
+    assert state.steps == []
+    assert llm.structured_calls == []
+
+
+def test_run_answer_evaluate_skips_when_error_set() -> None:
+    llm = FakeLlm(verdict=FaithfulnessVerdict(score=1.0, explanation="n/a"))
+    state = run_answer_evaluate(
+        _state(error="prior").model_copy(update={"draft_answer": "answer"}),
+        llm,
+    )
+    assert state.faithfulness is None
+    assert llm.structured_calls == []
+
+
+def test_run_answer_evaluate_skips_when_no_draft() -> None:
+    llm = FakeLlm(verdict=FaithfulnessVerdict(score=1.0, explanation="n/a"))
+    state = run_answer_evaluate(_state(), llm)
+    assert state.faithfulness is None
+    assert llm.structured_calls == []
+
+
+def test_run_answer_evaluate_fail_soft_on_llm_error() -> None:
+    llm = FakeLlm(evaluate_error=LlmRequestError("judge down"))
+    initial = _state().model_copy(update={"draft_answer": "Some answer."})
+
+    state = run_answer_evaluate(initial, llm)
+
+    assert state.error is None
+    assert state.draft_answer == "Some answer."
+    assert state.faithfulness is None
+    assert state.steps[-1].kind is StepKind.EVALUATE
+    assert "error" in state.steps[-1].payload
