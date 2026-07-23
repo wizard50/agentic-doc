@@ -20,4 +20,5 @@ class AgentGraphState(BaseModel):
     steps: list[StepEvent] = Field(default_factory=list)
     draft_answer: str | None = None
     structured: dict[str, Any] | None = None
+    faithfulness: float | None = None
     error: str | None = None

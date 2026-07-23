@@ -10,12 +10,14 @@ from agentic_doc_agent import AgentRequest, run_workflow
 
 ## Status
 
-**Answer workflow is runnable** end-to-end via `run_workflow` (retrieve → generate → `AgentResult`).
+**Answer workflow is runnable** end-to-end via `run_workflow` (retrieve → generate → optional faithfulness evaluate → `AgentResult`).
+
+Faithfulness scoring (LLM-as-judge) is on by default (`FAITHFULNESS_ENABLED=true`) and populates `metrics.faithfulness` (0–1). Disable with `FAITHFULNESS_ENABLED=false`. Judge failures are fail-soft: the answer still succeeds with `faithfulness=None`.
 
 Still stubbed / not implemented:
 
 - Compare and gap-report workflows
-- Faithfulness evaluation (`evaluation/`)
+- Offline generation-eval CLI / golden set
 - Agent-specific Phoenix instrumentation (`observability/`)
 - Demo UI (planned as a separate app)
 
@@ -59,7 +61,7 @@ src/agentic_doc_agent/
   llm/               # OpenAI-compatible LlmClient (complete + complete_structured)
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
   graphs/            # Answer workflow (prompts, nodes, compiled LangGraph)
-  evaluation/        # Faithfulness and generation eval (stub)
+  evaluation/        # Faithfulness LLM judge (runtime score on AgentResult)
   observability/     # Tracing helpers (stub)
 ```
 

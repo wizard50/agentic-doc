@@ -64,12 +64,14 @@ def main() -> int:
     )
 
     answer = result.answer or ""
+    step_names = [step.name for step in result.steps]
     print(f"status: {result.status.value}")
     print(f"error: {result.error}")
     print(f"retrieved: {len(result.retrieved)}")
     print(f"citations: {len(result.citations)}")
-    print(f"steps: {[step.name for step in result.steps]}")
+    print(f"steps: {step_names}")
     print(f"duration_ms: {result.metrics.duration_ms}")
+    print(f"faithfulness: {result.metrics.faithfulness}")
     print(f"answer_chars: {len(answer)}")
     print("--- answer ---")
     print(answer if answer else "(empty)")
@@ -87,12 +89,21 @@ def main() -> int:
     if not answer.strip():
         print("SMOKE FAIL: empty answer", file=sys.stderr)
         return 1
-    if [step.name for step in result.steps] != ["retrieve", "generate"]:
+    allowed_steps = (
+        ["retrieve", "generate"],
+        ["retrieve", "generate", "evaluate"],
+    )
+    if step_names not in allowed_steps:
         print(
-            f"SMOKE FAIL: unexpected steps {[step.name for step in result.steps]}",
+            f"SMOKE FAIL: unexpected steps {step_names}",
             file=sys.stderr,
         )
         return 1
+    if step_names == ["retrieve", "generate", "evaluate"] and result.metrics.faithfulness is None:
+        print(
+            "SMOKE WARN: evaluate ran but faithfulness is None (judge may have failed)",
+            file=sys.stderr,
+        )
 
     print("SMOKE OK")
     return 0

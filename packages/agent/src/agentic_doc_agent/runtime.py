@@ -64,7 +64,11 @@ def run_workflow(
         )
 
     try:
-        graph = build_answer_graph(tool, client)
+        graph = build_answer_graph(
+            tool,
+            client,
+            faithfulness_enabled=resolved.faithfulness_enabled,
+        )
         raw = graph.invoke(AgentGraphState(request=request))
         final_state = (
             raw if isinstance(raw, AgentGraphState) else AgentGraphState.model_validate(raw)
@@ -88,7 +92,11 @@ def agent_result_from_state(
 ) -> AgentResult:
     """Map graph state to the public ``AgentResult`` contract."""
     tool_calls = sum(1 for step in state.steps if step.kind is StepKind.TOOL)
-    metrics = AgentMetrics(tool_calls=tool_calls, duration_ms=duration_ms)
+    metrics = AgentMetrics(
+        faithfulness=state.faithfulness,
+        tool_calls=tool_calls,
+        duration_ms=duration_ms,
+    )
 
     if state.error is not None:
         status = AgentStatus.FAILED

@@ -1,10 +1,11 @@
-"""Pure retrieve/generate node logic for the answer workflow.
+"""Pure retrieve/generate/evaluate node logic for the answer workflow.
 
 No LangGraph compile here — nodes are plain functions for testability.
 """
 
 from __future__ import annotations
 
+from agentic_doc_agent.evaluation.faithfulness import score_faithfulness
 from agentic_doc_agent.graphs.answer_models import AnswerDraft
 from agentic_doc_agent.graphs.answer_prompts import (
     DEFAULT_MAX_CHUNK_CHARS,
@@ -116,6 +117,67 @@ def run_answer_generate(
             "draft_answer": draft.answer,
             "citations": citations,
             "structured": draft.model_dump(),
+            "steps": [*state.steps, step],
+        }
+    )
+
+
+def run_answer_evaluate(
+    state: AgentGraphState,
+    llm: LlmClient,
+    *,
+    enabled: bool = True,
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+) -> AgentGraphState:
+    """Score answer faithfulness against retrieved context (fail-soft).
+
+    Skips when disabled, when the run already failed, or when there is no draft.
+    Judge errors leave ``faithfulness`` unset and do not fail the workflow.
+    """
+    if not enabled or state.error is not None:
+        return state
+
+    answer = (state.draft_answer or "").strip()
+    if not answer:
+        return state
+
+    try:
+        verdict = score_faithfulness(
+            llm,
+            goal=state.request.goal,
+            answer=answer,
+            retrieved=state.retrieved,
+            max_chunk_chars=max_chunk_chars,
+        )
+    except LlmError as exc:
+        step = StepEvent(
+            kind=StepKind.EVALUATE,
+            name="evaluate",
+            detail="Faithfulness scoring failed",
+            payload={"error": str(exc)},
+        )
+        return state.model_copy(update={"steps": [*state.steps, step]})
+    except Exception as exc:
+        step = StepEvent(
+            kind=StepKind.EVALUATE,
+            name="evaluate",
+            detail="Faithfulness scoring failed",
+            payload={"error": str(exc)},
+        )
+        return state.model_copy(update={"steps": [*state.steps, step]})
+
+    step = StepEvent(
+        kind=StepKind.EVALUATE,
+        name="evaluate",
+        detail=f"Faithfulness score {verdict.score:.2f}",
+        payload={
+            "faithfulness": verdict.score,
+            "explanation": verdict.explanation,
+        },
+    )
+    return state.model_copy(
+        update={
+            "faithfulness": verdict.score,
             "steps": [*state.steps, step],
         }
     )
