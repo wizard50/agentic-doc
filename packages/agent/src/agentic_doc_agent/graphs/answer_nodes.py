@@ -15,6 +15,14 @@ from agentic_doc_agent.graphs.state import AgentGraphState
 from agentic_doc_agent.llm.models import LlmError
 from agentic_doc_agent.llm.protocols import LlmClient
 from agentic_doc_agent.models import Citation, StepEvent, StepKind
+from agentic_doc_agent.observability.tracing import (
+    get_tracer,
+    mark_evaluator_span,
+    mark_llm_span,
+    set_input_value,
+    set_output_value,
+    set_span_error,
+)
 from agentic_doc_agent.tools.retrieve import RetrieveTool
 from agentic_doc_rag.models import SearchResult
 
@@ -68,58 +76,67 @@ def run_answer_generate(
     if state.error is not None:
         return state
 
-    try:
-        messages = build_answer_messages(
-            state.request.goal,
-            state.retrieved,
-            max_chunk_chars=max_chunk_chars,
-        )
-        draft = llm.complete_structured(messages, AnswerDraft)
-    except LlmError as exc:
-        step = StepEvent(
-            kind=StepKind.GENERATE,
-            name="generate",
-            detail="Generation failed",
-            payload={"error": str(exc)},
-        )
-        return state.model_copy(
-            update={
-                "error": f"generate failed: {exc}",
-                "steps": [*state.steps, step],
-            }
-        )
-    except Exception as exc:
-        step = StepEvent(
-            kind=StepKind.GENERATE,
-            name="generate",
-            detail="Generation failed",
-            payload={"error": str(exc)},
-        )
-        return state.model_copy(
-            update={
-                "error": f"generate failed: {exc}",
-                "steps": [*state.steps, step],
-            }
-        )
+    with get_tracer(__name__).start_as_current_span("agent.generate") as span:
+        mark_llm_span(span)
+        set_input_value(span, state.request.goal)
+        span.set_attribute("retrieved_count", len(state.retrieved))
 
-    citations = citations_from_draft(draft, state.retrieved)
-    step = StepEvent(
-        kind=StepKind.GENERATE,
-        name="generate",
-        detail="Generated grounded answer",
-        payload={
-            "citation_count": len(citations),
-            "cited_chunk_ids": [c.chunk_id for c in citations],
-        },
-    )
-    return state.model_copy(
-        update={
-            "draft_answer": draft.answer,
-            "citations": citations,
-            "structured": draft.model_dump(),
-            "steps": [*state.steps, step],
-        }
-    )
+        try:
+            messages = build_answer_messages(
+                state.request.goal,
+                state.retrieved,
+                max_chunk_chars=max_chunk_chars,
+            )
+            draft = llm.complete_structured(messages, AnswerDraft)
+        except LlmError as exc:
+            set_span_error(span, str(exc))
+            step = StepEvent(
+                kind=StepKind.GENERATE,
+                name="generate",
+                detail="Generation failed",
+                payload={"error": str(exc)},
+            )
+            return state.model_copy(
+                update={
+                    "error": f"generate failed: {exc}",
+                    "steps": [*state.steps, step],
+                }
+            )
+        except Exception as exc:
+            set_span_error(span, str(exc))
+            step = StepEvent(
+                kind=StepKind.GENERATE,
+                name="generate",
+                detail="Generation failed",
+                payload={"error": str(exc)},
+            )
+            return state.model_copy(
+                update={
+                    "error": f"generate failed: {exc}",
+                    "steps": [*state.steps, step],
+                }
+            )
+
+        citations = citations_from_draft(draft, state.retrieved)
+        set_output_value(span, draft.answer)
+        span.set_attribute("citation_count", len(citations))
+        step = StepEvent(
+            kind=StepKind.GENERATE,
+            name="generate",
+            detail="Generated grounded answer",
+            payload={
+                "citation_count": len(citations),
+                "cited_chunk_ids": [c.chunk_id for c in citations],
+            },
+        )
+        return state.model_copy(
+            update={
+                "draft_answer": draft.answer,
+                "citations": citations,
+                "structured": draft.model_dump(),
+                "steps": [*state.steps, step],
+            }
+        )
 
 
 def run_answer_evaluate(
@@ -141,46 +158,54 @@ def run_answer_evaluate(
     if not answer:
         return state
 
-    try:
-        verdict = score_faithfulness(
-            llm,
-            goal=state.request.goal,
-            answer=answer,
-            retrieved=state.retrieved,
-            max_chunk_chars=max_chunk_chars,
-        )
-    except LlmError as exc:
-        step = StepEvent(
-            kind=StepKind.EVALUATE,
-            name="evaluate",
-            detail="Faithfulness scoring failed",
-            payload={"error": str(exc)},
-        )
-        return state.model_copy(update={"steps": [*state.steps, step]})
-    except Exception as exc:
-        step = StepEvent(
-            kind=StepKind.EVALUATE,
-            name="evaluate",
-            detail="Faithfulness scoring failed",
-            payload={"error": str(exc)},
-        )
-        return state.model_copy(update={"steps": [*state.steps, step]})
+    with get_tracer(__name__).start_as_current_span("agent.evaluate") as span:
+        mark_evaluator_span(span)
+        set_input_value(span, state.request.goal)
 
-    step = StepEvent(
-        kind=StepKind.EVALUATE,
-        name="evaluate",
-        detail=f"Faithfulness score {verdict.score:.2f}",
-        payload={
-            "faithfulness": verdict.score,
-            "explanation": verdict.explanation,
-        },
-    )
-    return state.model_copy(
-        update={
-            "faithfulness": verdict.score,
-            "steps": [*state.steps, step],
-        }
-    )
+        try:
+            verdict = score_faithfulness(
+                llm,
+                goal=state.request.goal,
+                answer=answer,
+                retrieved=state.retrieved,
+                max_chunk_chars=max_chunk_chars,
+            )
+        except LlmError as exc:
+            set_span_error(span, str(exc))
+            step = StepEvent(
+                kind=StepKind.EVALUATE,
+                name="evaluate",
+                detail="Faithfulness scoring failed",
+                payload={"error": str(exc)},
+            )
+            return state.model_copy(update={"steps": [*state.steps, step]})
+        except Exception as exc:
+            set_span_error(span, str(exc))
+            step = StepEvent(
+                kind=StepKind.EVALUATE,
+                name="evaluate",
+                detail="Faithfulness scoring failed",
+                payload={"error": str(exc)},
+            )
+            return state.model_copy(update={"steps": [*state.steps, step]})
+
+        span.set_attribute("agent.faithfulness", verdict.score)
+        set_output_value(span, f"score={verdict.score:.2f}; {verdict.explanation}")
+        step = StepEvent(
+            kind=StepKind.EVALUATE,
+            name="evaluate",
+            detail=f"Faithfulness score {verdict.score:.2f}",
+            payload={
+                "faithfulness": verdict.score,
+                "explanation": verdict.explanation,
+            },
+        )
+        return state.model_copy(
+            update={
+                "faithfulness": verdict.score,
+                "steps": [*state.steps, step],
+            }
+        )
 
 
 def citations_from_draft(

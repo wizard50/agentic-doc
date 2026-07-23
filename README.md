@@ -53,7 +53,7 @@ result = run_workflow(AgentRequest(goal="What is ownership in Rust?"))
 print(result.status, result.answer)
 ```
 
-Details: [`packages/agent/README.md`](packages/agent/README.md). Answer runs can score faithfulness (`FAITHFULNESS_ENABLED`, default on). Compare/gap workflows and an agent UI are not shipped yet.
+Details: [`packages/agent/README.md`](packages/agent/README.md). Answer runs can score faithfulness (`FAITHFULNESS_ENABLED`, default on) and emit Phoenix spans when `PHOENIX_ENABLED=true`. Compare/gap workflows and an agent UI are not shipped yet.
 
 ## M1 explorer
 
@@ -124,6 +124,8 @@ PHOENIX_ENABLED=true uv run explorer          # spans: vectorstore.search (RETRI
 ```
 
 With tracing enabled, the Doc Explorer sidebar shows an **Open Phoenix** link to the local UI.
+
+Agent Answer runs also emit spans (`agent.run_workflow`, retrieve/generate/evaluate) when tracing is registered — e.g. `PHOENIX_ENABLED=true uv run python scripts/smoke_answer.py`.
 
 ## License
 

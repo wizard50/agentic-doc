@@ -42,8 +42,18 @@ def main() -> int:
     args = parser.parse_args()
 
     from agentic_doc_agent import AgentRequest, AgentStatus, WorkflowId, run_workflow
+    from agentic_doc_core.config import get_phoenix_settings
     from agentic_doc_rag.config import get_rag_settings
+    from agentic_doc_rag.observability import register_tracing
     from agentic_doc_rag.retrieval import create_retriever
+
+    phoenix = get_phoenix_settings()
+    register_tracing(phoenix)
+    if phoenix.enabled:
+        print(
+            f"phoenix: enabled project={phoenix.project_name!r} "
+            f"endpoint={phoenix.collector_endpoint}"
+        )
 
     settings = get_rag_settings()
     count = create_retriever(settings).count()

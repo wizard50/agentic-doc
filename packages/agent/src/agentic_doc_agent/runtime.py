@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 
+from opentelemetry.trace import Span
+
 from agentic_doc_agent.config import AgentSettings, get_agent_settings
 from agentic_doc_agent.graphs.answer import build_answer_graph
 from agentic_doc_agent.graphs.state import AgentGraphState
@@ -17,6 +19,13 @@ from agentic_doc_agent.models import (
     AgentStatus,
     StepKind,
     WorkflowId,
+)
+from agentic_doc_agent.observability.tracing import (
+    get_tracer,
+    mark_agent_span,
+    set_input_value,
+    set_output_value,
+    set_span_error,
 )
 from agentic_doc_agent.tools.retrieve import RetrieveTool
 from agentic_doc_rag.config import get_rag_settings
@@ -44,45 +53,62 @@ def run_workflow(
     resolved = settings or get_agent_settings()
     started = time.perf_counter()
 
-    if request.workflow is not WorkflowId.ANSWER:
-        return _failed_result(
-            request,
-            error=f"Workflow {request.workflow!r} is not implemented yet",
-            duration_ms=_elapsed_ms(started),
-        )
+    with get_tracer(__name__).start_as_current_span("agent.run_workflow") as span:
+        mark_agent_span(span)
+        set_input_value(span, request.goal)
+        span.set_attribute("workflow", request.workflow.value)
 
-    try:
-        tool = retrieve_tool or _default_retrieve_tool(resolved, retriever)
-        client = llm if llm is not None else create_llm_client(resolved)
-    except LlmConfigError as exc:
-        return _failed_result(request, error=str(exc), duration_ms=_elapsed_ms(started))
-    except Exception as exc:
-        return _failed_result(
-            request,
-            error=f"Failed to initialize workflow dependencies: {exc}",
-            duration_ms=_elapsed_ms(started),
-        )
+        if request.workflow is not WorkflowId.ANSWER:
+            result = _failed_result(
+                request,
+                error=f"Workflow {request.workflow!r} is not implemented yet",
+                duration_ms=_elapsed_ms(started),
+            )
+            _annotate_workflow_span(span, result)
+            return result
 
-    try:
-        graph = build_answer_graph(
-            tool,
-            client,
-            faithfulness_enabled=resolved.faithfulness_enabled,
-        )
-        raw = graph.invoke(AgentGraphState(request=request))
-        final_state = (
-            raw if isinstance(raw, AgentGraphState) else AgentGraphState.model_validate(raw)
-        )
-    except LlmError as exc:
-        return _failed_result(request, error=str(exc), duration_ms=_elapsed_ms(started))
-    except Exception as exc:
-        return _failed_result(
-            request,
-            error=f"Workflow execution failed: {exc}",
-            duration_ms=_elapsed_ms(started),
-        )
+        try:
+            tool = retrieve_tool or _default_retrieve_tool(resolved, retriever)
+            client = llm if llm is not None else create_llm_client(resolved)
+        except LlmConfigError as exc:
+            result = _failed_result(request, error=str(exc), duration_ms=_elapsed_ms(started))
+            _annotate_workflow_span(span, result)
+            return result
+        except Exception as exc:
+            result = _failed_result(
+                request,
+                error=f"Failed to initialize workflow dependencies: {exc}",
+                duration_ms=_elapsed_ms(started),
+            )
+            _annotate_workflow_span(span, result)
+            return result
 
-    return agent_result_from_state(final_state, duration_ms=_elapsed_ms(started))
+        try:
+            graph = build_answer_graph(
+                tool,
+                client,
+                faithfulness_enabled=resolved.faithfulness_enabled,
+            )
+            raw = graph.invoke(AgentGraphState(request=request))
+            final_state = (
+                raw if isinstance(raw, AgentGraphState) else AgentGraphState.model_validate(raw)
+            )
+        except LlmError as exc:
+            result = _failed_result(request, error=str(exc), duration_ms=_elapsed_ms(started))
+            _annotate_workflow_span(span, result)
+            return result
+        except Exception as exc:
+            result = _failed_result(
+                request,
+                error=f"Workflow execution failed: {exc}",
+                duration_ms=_elapsed_ms(started),
+            )
+            _annotate_workflow_span(span, result)
+            return result
+
+        result = agent_result_from_state(final_state, duration_ms=_elapsed_ms(started))
+        _annotate_workflow_span(span, result)
+        return result
 
 
 def agent_result_from_state(
@@ -123,6 +149,21 @@ def agent_result_from_state(
         metrics=metrics,
         error=error,
     )
+
+
+def _annotate_workflow_span(span: Span, result: AgentResult) -> None:
+    """Attach result metrics to the parent workflow span."""
+    span.set_attribute("agent.status", result.status.value)
+    span.set_attribute("agent.tool_calls", result.metrics.tool_calls)
+    span.set_attribute("agent.retrieved_count", len(result.retrieved))
+    span.set_attribute("agent.citation_count", len(result.citations))
+    if result.metrics.duration_ms is not None:
+        span.set_attribute("agent.duration_ms", result.metrics.duration_ms)
+    if result.metrics.faithfulness is not None:
+        span.set_attribute("agent.faithfulness", result.metrics.faithfulness)
+    set_output_value(span, result.answer)
+    if result.error is not None:
+        set_span_error(span, result.error)
 
 
 def _default_retrieve_tool(

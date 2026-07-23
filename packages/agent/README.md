@@ -14,11 +14,20 @@ from agentic_doc_agent import AgentRequest, run_workflow
 
 Faithfulness scoring (LLM-as-judge) is on by default (`FAITHFULNESS_ENABLED=true`) and populates `metrics.faithfulness` (0–1). Disable with `FAITHFULNESS_ENABLED=false`. Judge failures are fail-soft: the answer still succeeds with `faithfulness=None`.
 
+**Phoenix tracing:** Answer runs emit OpenInference spans (`agent.run_workflow`, `agent.tool.retrieve`, `agent.generate`, `agent.evaluate`) when tracing is registered. Reuse M1 settings (`PHOENIX_ENABLED`, etc.):
+
+```bash
+# Terminal 1
+uv run phoenix serve
+
+# Terminal 2
+PHOENIX_ENABLED=true uv run python scripts/smoke_answer.py
+```
+
 Still stubbed / not implemented:
 
 - Compare and gap-report workflows
 - Offline generation-eval CLI / golden set
-- Agent-specific Phoenix instrumentation (`observability/`)
 - Demo UI (planned as a separate app)
 
 ## Prerequisites (live runs)
@@ -62,8 +71,22 @@ src/agentic_doc_agent/
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
   graphs/            # Answer workflow (prompts, nodes, compiled LangGraph)
   evaluation/        # Faithfulness LLM judge (runtime score on AgentResult)
-  observability/     # Tracing helpers (stub)
+  observability/     # OpenInference / OTEL span helpers for agent runs
 ```
+
+## Observability
+
+Register Phoenix once at process start (same helper as M1):
+
+```python
+from agentic_doc_core.config import get_phoenix_settings
+from agentic_doc_rag.observability import register_tracing
+
+register_tracing(get_phoenix_settings())
+```
+
+Spans are always opened; they are no-ops until a tracer provider is registered. `scripts/smoke_answer.py` calls `register_tracing` automatically.
+
 
 ## Public API
 

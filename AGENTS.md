@@ -20,7 +20,7 @@ Build agentic capabilities on top of the completed M1 documentation RAG core:
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
-**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is implemented (LangGraph retrieve → generate → optional faithfulness evaluate). Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`).
+**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is implemented (LangGraph retrieve → generate → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces).
 
 ## Milestones
 
@@ -43,6 +43,7 @@ Delivered documentation RAG:
 - **Answer workflow:** `run_workflow(AgentRequest(...))` — retrieve tool + structured generation + optional faithfulness score
 - Answer generation grounded in retrieved context
 - Faithfulness scoring on Answer runs (`metrics.faithfulness`; `FAITHFULNESS_ENABLED`)
+- Agent Phoenix/OpenInference spans on Answer runs (`agent.run_workflow` + tool/generate/evaluate)
 - Structured outputs with Pydantic models
 - Developer-focused workflows (analysis, comparison, gap detection, report generation) — Answer done; others planned
 - Focus on Software Engineering / technical documentation domain
