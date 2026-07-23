@@ -14,8 +14,7 @@ from agentic_doc_rag.retrieval.models import RetrievalRequest
 class Reranker(Protocol):
     """Rescore retrieved chunks for query-level relevance."""
 
-    def rerank(self, query: str, results: list[SearchResult]) -> list[SearchResult]:
-        ...
+    def rerank(self, query: str, results: list[SearchResult]) -> list[SearchResult]: ...
 
 
 class CrossEncoderReranker:

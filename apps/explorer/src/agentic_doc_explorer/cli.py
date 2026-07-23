@@ -195,7 +195,9 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    ingest_parser = subparsers.add_parser("ingest", help="Index markdown files into the vector store")
+    ingest_parser = subparsers.add_parser(
+        "ingest", help="Index markdown files into the vector store"
+    )
     ingest_parser.add_argument(
         "--source",
         type=Path,

@@ -46,9 +46,9 @@ def _fake_response(
     return SimpleNamespace(choices=[choice], model=model, usage=usage_obj)
 
 
-def _client_with_mock(create_return: Any = None, *, side_effect: Exception | None = None) -> tuple[
-    OpenAICompatibleClient, MagicMock
-]:
+def _client_with_mock(
+    create_return: Any = None, *, side_effect: Exception | None = None
+) -> tuple[OpenAICompatibleClient, MagicMock]:
     mock_openai = MagicMock()
     if side_effect is not None:
         mock_openai.chat.completions.create.side_effect = side_effect
@@ -130,9 +130,7 @@ def test_complete_no_choices_raises() -> None:
         client.complete(_messages())
 
 
-def test_create_llm_client_requires_api_key(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
-) -> None:
+def test_create_llm_client_requires_api_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
@@ -141,9 +139,7 @@ def test_create_llm_client_requires_api_key(
         create_llm_client(AgentSettings())
 
 
-def test_create_llm_client_uses_settings(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
-) -> None:
+def test_create_llm_client_uses_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("LLM_API_KEY", "secret")
     monkeypatch.setenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
@@ -169,7 +165,9 @@ def test_chat_message_rejects_empty_content() -> None:
 
 
 def test_complete_structured_happy_path() -> None:
-    payload = '{"setup": "Why did the chicken cross the road?", "punchline": "To get to the other side."}'
+    payload = (
+        '{"setup": "Why did the chicken cross the road?", "punchline": "To get to the other side."}'
+    )
     client, mock_openai = _client_with_mock(create_return=_fake_response(content=payload))
 
     joke = client.complete_structured(_messages(), _Joke)

@@ -6,7 +6,9 @@ __all__ = ["MetadataFilter", "RetrievalRequest", "SearchMode"]
 
 
 class MetadataFilter(BaseModel):
-    source_contains: str | None = Field(default=None, description="Substring match on chunk source path")
+    source_contains: str | None = Field(
+        default=None, description="Substring match on chunk source path"
+    )
     source_suffix: str | None = Field(
         default=None,
         description="Expected source path suffix (e.g. ch04-02-references-and-borrowing.md)",
