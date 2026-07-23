@@ -71,7 +71,8 @@ quote-style = "double"
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps"]
 python_files = ["test_*.py"]
-addopts = "-ra --strict-markers --cov --cov-report=term-missing"
+pythonpath = ["packages/rag/tests"]
+addopts = "-ra --strict-markers --import-mode=importlib --cov --cov-report=term-missing"
 
 [tool.ty]
 environment = { root = [
@@ -79,4 +80,6 @@ environment = { root = [
     "packages/rag/src",
     "packages/agent/src",
     "apps/explorer/src",
+], extra-paths = [
+    "packages/rag/tests",
 ] }
