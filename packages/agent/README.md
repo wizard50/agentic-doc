@@ -2,11 +2,52 @@
 
 Agentic intelligence layer for **agentic-doc** — LangGraph workflows, retrieval tools, grounded generation, structured outputs, and generation-quality evaluation.
 
-Built on top of [`agentic-doc-rag`](../rag/) (M1). Apps and the future production API should prefer the public package API.
+Built on top of [`agentic-doc-rag`](../rag/) (M1). Apps and the future production API should prefer the public package API:
+
+```python
+from agentic_doc_agent import AgentRequest, run_workflow
+```
 
 ## Status
 
-M2 scaffold — public contracts and module layout are in place; workflow graphs and runtime are next.
+**Answer workflow is runnable** end-to-end via `run_workflow` (retrieve → generate → `AgentResult`).
+
+Still stubbed / not implemented:
+
+- Compare and gap-report workflows
+- Faithfulness evaluation (`evaluation/`)
+- Agent-specific Phoenix instrumentation (`observability/`)
+- Demo UI (planned as a separate app)
+
+## Prerequisites (live runs)
+
+Run commands from the **workspace root**.
+
+1. **Index the corpus** (empty index → 0 retrieved passages; the model may still “succeed” with an insufficient-context answer):
+
+   ```bash
+   uv run explorer ingest
+   ```
+
+2. **LLM credentials** in `.env` (see workspace [`.env.example`](../../.env.example)):
+
+   ```env
+   LLM_API_KEY=sk-...
+   # Optional OpenAI-compatible proxy (e.g. OpenRouter):
+   # LLM_BASE_URL=https://openrouter.ai/api/v1
+   # LLM_MODEL=openai/gpt-4o-mini
+   ```
+
+## Live smoke
+
+```bash
+# Default goal: ownership in Rust — prints full answer; exit 0 on success
+uv run python scripts/smoke_answer.py
+
+uv run python scripts/smoke_answer.py --goal "What is borrowing?"
+```
+
+The script fails fast if the index is empty or the workflow does not succeed with retrieved context. It prints the **full** answer (no truncated preview).
 
 ## Layout
 
@@ -41,18 +82,11 @@ from agentic_doc_agent import (
     run_workflow,
 )
 
-# End-to-end answer workflow (inject fakes in tests; defaults use RAG + LLM env)
-# result = run_workflow(AgentRequest(goal="What is ownership?"))
-# # or: run_workflow(request, retrieve_tool=..., llm=...)
+# Production defaults: RAG index from settings + LLM from LLM_API_KEY
+result = run_workflow(AgentRequest(goal="What is ownership?"))
 
-# Retrieve tool (inject an M1 Retriever)
-# tool = RetrieveTool(create_retriever(get_rag_settings()))
-# result = tool.invoke(query="What is ownership?", top_k=5)
-
-# LLM client (requires LLM_API_KEY; optional LLM_BASE_URL for OpenRouter-compatible APIs)
-# llm = create_llm_client()
-# out = llm.complete([ChatMessage(role=ChatRole.USER, content="Summarize ownership")])
-# typed = llm.complete_structured(messages, MyPydanticModel)
+# Tests: inject fakes
+# result = run_workflow(request, retrieve_tool=..., llm=...)
 ```
 
 ## Dependencies
