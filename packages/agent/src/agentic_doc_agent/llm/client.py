@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Any, TypeVar, cast
 
 from openai import APIError, OpenAI
@@ -19,6 +21,11 @@ from agentic_doc_agent.llm.models import (
 )
 
 T = TypeVar("T", bound=BaseModel)
+
+_JSON_FENCE_RE = re.compile(
+    r"```(?:json)?\s*(\{.*\}|\[.*\])\s*```",
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 class OpenAICompatibleClient:
@@ -74,7 +81,7 @@ class OpenAICompatibleClient:
             "type": "json_schema",
             "json_schema": {
                 "name": _schema_name(schema),
-                "schema": schema.model_json_schema(),
+                "schema": _json_schema_for_response(schema),
                 "strict": False,
             },
         }
@@ -85,12 +92,7 @@ class OpenAICompatibleClient:
             response_format=response_format,
         )
         content = _assistant_content_from_response(response)
-        try:
-            return schema.model_validate_json(content)
-        except ValidationError as exc:
-            raise LlmResponseError(
-                f"LLM response failed schema validation for {schema.__name__}: {exc}"
-            ) from exc
+        return _parse_structured_content(content, schema)
 
     def _create_completion(
         self,
@@ -161,6 +163,84 @@ def _schema_name(schema: type[BaseModel]) -> str:
     # OpenAI json_schema names: a-z, A-Z, 0-9, underscores, dashes; max 64.
     cleaned = "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in name)
     return (cleaned or "response")[:64]
+
+
+def _json_schema_for_response(schema: type[BaseModel]) -> dict[str, Any]:
+    """Build a provider-friendly JSON Schema (drop noisy top-level metadata).
+
+    Some OpenAI-compatible proxies echo schema headers (``description``/``type``)
+    instead of filling ``properties`` when the raw Pydantic schema is sent as-is.
+    """
+    full = schema.model_json_schema()
+    properties = full.get("properties") or {}
+    required = full.get("required") or []
+    cleaned: dict[str, Any] = {
+        "type": "object",
+        "properties": properties,
+        "additionalProperties": False,
+    }
+    if required:
+        cleaned["required"] = required
+    if "$defs" in full:
+        cleaned["$defs"] = full["$defs"]
+    # Keep $ref targets usable when present on the root schema.
+    for key in ("$defs", "definitions"):
+        if key in full and key not in cleaned:
+            cleaned[key] = full[key]
+    return cleaned
+
+
+def _parse_structured_content[T: BaseModel](content: str, schema: type[T]) -> T:
+    """Parse assistant content into ``schema``, tolerating fenced JSON."""
+    candidates = _json_payload_candidates(content)
+    last_error: Exception | None = None
+    for candidate in candidates:
+        try:
+            if isinstance(candidate, str):
+                return schema.model_validate_json(candidate)
+            return schema.model_validate(candidate)
+        except (ValidationError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            last_error = exc
+            continue
+    raise LlmResponseError(
+        f"LLM response failed schema validation for {schema.__name__}: {last_error}"
+    ) from last_error
+
+
+def _json_payload_candidates(content: str) -> list[str | dict[str, Any] | list[Any]]:
+    """Yield likely JSON payloads from raw model text (ordered)."""
+    text = content.strip()
+    if not text:
+        return []
+
+    candidates: list[str | dict[str, Any] | list[Any]] = [text]
+
+    fenced = _JSON_FENCE_RE.search(text)
+    if fenced:
+        candidates.insert(0, fenced.group(1).strip())
+
+    # First {...} object if the model added prose around JSON.
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        snippet = text[start : end + 1]
+        if snippet not in candidates:
+            candidates.append(snippet)
+
+    # Prefer already-decoded dicts when the whole body is JSON.
+    decoded: list[str | dict[str, Any] | list[Any]] = []
+    for item in candidates:
+        if not isinstance(item, str):
+            decoded.append(item)
+            continue
+        try:
+            parsed = json.loads(item)
+        except json.JSONDecodeError:
+            decoded.append(item)
+            continue
+        decoded.append(parsed)
+        decoded.append(item)
+    return decoded
 
 
 def _assistant_content_from_response(response: Any) -> str:

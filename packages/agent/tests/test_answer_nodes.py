@@ -3,11 +3,12 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from agentic_doc_agent.evaluation import FaithfulnessVerdict
-from agentic_doc_agent.graphs.answer_models import AnswerDraft
+from agentic_doc_agent.graphs.answer_models import AnswerDraft, PlanDraft
 from agentic_doc_agent.graphs.answer_nodes import (
     citations_from_draft,
     run_answer_evaluate,
     run_answer_generate,
+    run_answer_plan,
     run_answer_retrieve,
 )
 from agentic_doc_agent.graphs.state import AgentGraphState
@@ -46,13 +47,17 @@ class FakeLlm:
         self,
         draft: AnswerDraft | None = None,
         *,
+        plan: PlanDraft | None = None,
         verdict: FaithfulnessVerdict | None = None,
         error: Exception | None = None,
+        plan_error: Exception | None = None,
         evaluate_error: Exception | None = None,
     ) -> None:
         self._draft = draft
+        self._plan = plan
         self._verdict = verdict
         self._error = error
+        self._plan_error = plan_error
         self._evaluate_error = evaluate_error
         self.structured_calls: list[tuple[list[ChatMessage], type[BaseModel]]] = []
 
@@ -74,6 +79,12 @@ class FakeLlm:
         temperature: float | None = None,
     ) -> T:
         self.structured_calls.append((messages, schema))
+        if schema is PlanDraft:
+            if self._plan_error is not None:
+                raise self._plan_error
+            if self._plan is None:
+                raise RuntimeError("FakeLlm has no plan configured")
+            return schema.model_validate(self._plan.model_dump())
         if schema is FaithfulnessVerdict:
             if self._evaluate_error is not None:
                 raise self._evaluate_error
@@ -105,6 +116,51 @@ def _state(*, goal: str = "What is ownership?", error: str | None = None) -> Age
     )
 
 
+def test_run_answer_plan_happy_path() -> None:
+    plan = PlanDraft(search_query="Rust ownership rules", rationale="Focus keywords")
+    llm = FakeLlm(plan=plan)
+
+    state = run_answer_plan(_state(), llm)
+
+    assert state.error is None
+    assert state.retrieve_query == "Rust ownership rules"
+    assert state.steps[-1].kind is StepKind.PLAN
+    assert state.steps[-1].name == "plan"
+    assert state.steps[-1].payload["search_query"] == "Rust ownership rules"
+    assert state.steps[-1].payload["rationale"] == "Focus keywords"
+    assert len(llm.structured_calls) == 1
+    assert llm.structured_calls[0][1] is PlanDraft
+
+
+def test_run_answer_plan_disabled_is_noop() -> None:
+    llm = FakeLlm(plan=PlanDraft(search_query="unused"))
+    state = run_answer_plan(_state(), llm, enabled=False)
+
+    assert state.retrieve_query is None
+    assert state.steps == []
+    assert llm.structured_calls == []
+
+
+def test_run_answer_plan_skips_when_error_set() -> None:
+    llm = FakeLlm(plan=PlanDraft(search_query="unused"))
+    state = run_answer_plan(_state(error="prior"), llm)
+
+    assert state.retrieve_query is None
+    assert llm.structured_calls == []
+
+
+def test_run_answer_plan_fail_soft_on_llm_error() -> None:
+    llm = FakeLlm(plan_error=LlmRequestError("provider down"))
+    state = run_answer_plan(_state(goal="What is ownership?"), llm)
+
+    assert state.error is None
+    # Fall back to the original goal so retrieve still has a concrete query.
+    assert state.retrieve_query == "What is ownership?"
+    assert state.steps[-1].kind is StepKind.PLAN
+    assert "error" in state.steps[-1].payload
+    assert state.steps[-1].payload.get("fallback") is True
+
+
 def test_run_answer_retrieve_happy_path() -> None:
     hits = [_hit("a"), _hit("b")]
     tool = RetrieveTool(FakeRetriever(hits), default_top_k=3)
@@ -112,11 +168,51 @@ def test_run_answer_retrieve_happy_path() -> None:
 
     assert state.error is None
     assert [h.chunk.id for h in state.retrieved] == ["a", "b"]
+    assert state.retrieve_rounds == 1
+    assert state.needs_more_context is False
     assert len(state.steps) == 1
     assert state.steps[0].kind is StepKind.TOOL
     assert state.steps[0].name == "retrieve"
     assert state.steps[0].payload["count"] == 2
     assert state.steps[0].payload["query"] == "What is ownership?"
+    assert state.steps[0].payload["round"] == 1
+    assert state.steps[0].payload["merged_count"] == 2
+
+
+def test_run_answer_retrieve_uses_retrieve_query() -> None:
+    retriever = FakeRetriever([_hit("a")])
+    tool = RetrieveTool(retriever, default_top_k=3)
+    initial = _state().model_copy(update={"retrieve_query": "Rust ownership rules"})
+
+    state = run_answer_retrieve(initial, tool)
+
+    assert state.steps[0].payload["query"] == "Rust ownership rules"
+    assert retriever.calls[0].query == "Rust ownership rules"
+    assert state.retrieve_rounds == 1
+
+
+def test_run_answer_retrieve_merges_across_rounds() -> None:
+    first_tool = RetrieveTool(FakeRetriever([_hit("a"), _hit("b")]))
+    after_first = run_answer_retrieve(_state(), first_tool)
+    assert [h.chunk.id for h in after_first.retrieved] == ["a", "b"]
+    assert after_first.retrieve_rounds == 1
+
+    second = after_first.model_copy(
+        update={
+            "retrieve_query": "borrowing",
+            "needs_more_context": True,
+        }
+    )
+    second_tool = RetrieveTool(FakeRetriever([_hit("b", "B2"), _hit("c")]))
+    after_second = run_answer_retrieve(second, second_tool)
+
+    assert [h.chunk.id for h in after_second.retrieved] == ["a", "b", "c"]
+    assert after_second.retrieved[1].chunk.text == "body"  # first-seen "b" kept
+    assert after_second.retrieve_rounds == 2
+    assert after_second.needs_more_context is False
+    assert after_second.steps[-1].payload["round"] == 2
+    assert after_second.steps[-1].payload["merged_count"] == 3
+    assert after_second.steps[-1].payload["query"] == "borrowing"
 
 
 def test_run_answer_retrieve_records_failure() -> None:
@@ -126,6 +222,7 @@ def test_run_answer_retrieve_records_failure() -> None:
     assert state.error is not None
     assert "retrieve failed" in state.error
     assert state.retrieved == []
+    assert state.retrieve_rounds == 0
     assert state.steps[0].kind is StepKind.TOOL
     assert "error" in state.steps[0].payload
 
@@ -143,7 +240,12 @@ def test_run_answer_generate_happy_path() -> None:
         citation_chunk_ids=["a", "missing", "a", "b"],
     )
     llm = FakeLlm(draft)
-    initial = _state().model_copy(update={"retrieved": [_hit("a", "own"), _hit("b", "borrow")]})
+    initial = _state().model_copy(
+        update={
+            "retrieved": [_hit("a", "own"), _hit("b", "borrow")],
+            "retrieve_rounds": 1,
+        }
+    )
 
     state = run_answer_generate(initial, llm)
 
@@ -153,12 +255,50 @@ def test_run_answer_generate_happy_path() -> None:
     assert [c.chunk_id for c in state.citations] == ["a", "b"]
     assert state.citations[0].source == "a.md"
     assert state.citations[0].section_path == "Sec a"
+    assert state.needs_more_context is False
     assert state.steps[-1].kind is StepKind.GENERATE
     assert state.steps[-1].payload["citation_count"] == 2
+    assert state.steps[-1].payload["context_sufficient"] is True
+    assert state.steps[-1].payload["needs_more_context"] is False
     assert len(llm.structured_calls) == 1
     messages, schema = llm.structured_calls[0]
     assert schema is AnswerDraft
     assert messages[1].content  # user message includes context
+
+
+def test_run_answer_generate_insufficient_with_follow_up() -> None:
+    draft = AnswerDraft(
+        answer="Context does not cover borrowing.",
+        context_sufficient=False,
+        follow_up_query="Rust borrowing and references",
+    )
+    llm = FakeLlm(draft)
+    initial = _state().model_copy(
+        update={"retrieved": [_hit("a")], "retrieve_rounds": 1, "retrieve_query": "ownership"}
+    )
+
+    state = run_answer_generate(initial, llm)
+
+    assert state.needs_more_context is True
+    assert state.retrieve_query == "Rust borrowing and references"
+    assert state.draft_answer == draft.answer
+    assert state.steps[-1].payload["needs_more_context"] is True
+    assert state.steps[-1].payload["follow_up_query"] == "Rust borrowing and references"
+
+
+def test_run_answer_generate_insufficient_without_follow_up_stops() -> None:
+    draft = AnswerDraft(
+        answer="Not enough context.",
+        context_sufficient=False,
+        follow_up_query=None,
+    )
+    llm = FakeLlm(draft)
+    initial = _state().model_copy(update={"retrieved": [_hit("a")], "retrieve_rounds": 1})
+
+    state = run_answer_generate(initial, llm)
+
+    assert state.needs_more_context is False
+    assert state.steps[-1].payload["needs_more_context"] is False
 
 
 def test_run_answer_generate_llm_error() -> None:

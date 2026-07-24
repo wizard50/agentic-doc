@@ -181,8 +181,21 @@ def test_complete_structured_happy_path() -> None:
     assert kwargs["temperature"] == 0.0
     assert kwargs["response_format"]["type"] == "json_schema"
     assert kwargs["response_format"]["json_schema"]["name"] == "_Joke"
-    assert kwargs["response_format"]["json_schema"]["schema"]["title"] == "_Joke"
+    schema = kwargs["response_format"]["json_schema"]["schema"]
+    assert schema["type"] == "object"
+    assert "properties" in schema
+    assert schema.get("additionalProperties") is False
+    assert "title" not in schema
     assert kwargs["response_format"]["json_schema"]["strict"] is False
+
+
+def test_complete_structured_parses_fenced_json() -> None:
+    payload = 'Here you go:\n```json\n{"setup": "Q?", "punchline": "A!"}\n```\n'
+    client, _ = _client_with_mock(create_return=_fake_response(content=payload))
+
+    joke = client.complete_structured(_messages(), _Joke)
+    assert joke.setup == "Q?"
+    assert joke.punchline == "A!"
 
 
 def test_complete_structured_overrides_model_and_temperature() -> None:

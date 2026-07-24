@@ -24,7 +24,11 @@ class AgentSettings(BaseSettings):
     max_tool_rounds: int = Field(
         default=5,
         ge=1,
-        description="Maximum tool/LLM rounds per workflow run",
+        description="Maximum retrieve tool invocations per Answer run",
+    )
+    plan_enabled: bool = Field(
+        default=True,
+        description="Rewrite the retrieval query before the first search",
     )
     default_top_k: int = Field(
         default=5,

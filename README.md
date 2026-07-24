@@ -38,7 +38,7 @@ uv run ty check
 
 ## M2 agent (Answer workflow)
 
-The `packages/agent` library exposes a grounded **Answer** path: retrieve from the M1 index, then generate a structured answer with citations.
+The `packages/agent` library exposes a grounded multi-step **Answer** path: optional plan (query rewrite) → retrieve → generate (optional re-retrieve) → faithfulness evaluate.
 
 ```bash
 uv run explorer ingest                              # required — empty index → 0 retrieved chunks
@@ -50,10 +50,10 @@ uv run python scripts/smoke_answer.py               # live smoke; prints full an
 from agentic_doc_agent import AgentRequest, run_workflow
 
 result = run_workflow(AgentRequest(goal="What is ownership in Rust?"))
-print(result.status, result.answer)
+print(result.status, result.answer, result.metrics.faithfulness)
 ```
 
-Details: [`packages/agent/README.md`](packages/agent/README.md). Answer runs can score faithfulness (`FAITHFULNESS_ENABLED`, default on) and emit Phoenix spans when `PHOENIX_ENABLED=true`. Compare/gap workflows and an agent UI are not shipped yet.
+Details: [`packages/agent/README.md`](packages/agent/README.md). Tunables: `PLAN_ENABLED`, `MAX_TOOL_ROUNDS`, `FAITHFULNESS_ENABLED` (defaults on where noted). Phoenix spans when `PHOENIX_ENABLED=true`. Compare/gap workflows and an agent UI are not shipped yet.
 
 ## M1 explorer
 

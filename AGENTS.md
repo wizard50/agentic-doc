@@ -20,7 +20,7 @@ Build agentic capabilities on top of the completed M1 documentation RAG core:
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
-**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is implemented (LangGraph retrieve → generate → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces).
+**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is multi-step (LangGraph plan → retrieve → generate ⇄ re-retrieve → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces).
 
 ## Milestones
 
@@ -40,12 +40,13 @@ Delivered documentation RAG:
 ### Milestone 2 – Agentic Intelligence Layer ← Current
 - Agentic capabilities on top of Milestone 1
 - Multi-step reasoning, planning, and tool use (LangGraph)
-- **Answer workflow:** `run_workflow(AgentRequest(...))` — retrieve tool + structured generation + optional faithfulness score
+- **Answer workflow:** `run_workflow(AgentRequest(...))` — plan (query rewrite), retrieve tool, structured generation, optional re-retrieve (`MAX_TOOL_ROUNDS`), optional faithfulness score
 - Answer generation grounded in retrieved context
 - Faithfulness scoring on Answer runs (`metrics.faithfulness`; `FAITHFULNESS_ENABLED`)
-- Agent Phoenix/OpenInference spans on Answer runs (`agent.run_workflow` + tool/generate/evaluate)
+- Multi-step Answer path (`PLAN_ENABLED`, re-retrieve when context is insufficient)
+- Agent Phoenix/OpenInference spans on Answer runs (`agent.run_workflow` + plan/tool/generate/evaluate)
 - Structured outputs with Pydantic models
-- Developer-focused workflows (analysis, comparison, gap detection, report generation) — Answer done; others planned
+- Developer-focused workflows (analysis, comparison, gap detection, report generation) — Answer multi-step done; Compare/Gap planned
 - Focus on Software Engineering / technical documentation domain
 
 ### Milestone 3 – Production Backend
