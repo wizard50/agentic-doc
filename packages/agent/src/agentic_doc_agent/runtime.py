@@ -88,6 +88,8 @@ def run_workflow(
                 tool,
                 client,
                 faithfulness_enabled=resolved.faithfulness_enabled,
+                plan_enabled=resolved.plan_enabled,
+                max_tool_rounds=resolved.max_tool_rounds,
             )
             raw = graph.invoke(AgentGraphState(request=request))
             final_state = (

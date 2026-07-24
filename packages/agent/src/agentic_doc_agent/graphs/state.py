@@ -11,7 +11,9 @@ from agentic_doc_rag.models import SearchResult
 class AgentGraphState(BaseModel):
     """Typed state carried through LangGraph nodes.
 
-    Intentionally small for the scaffold; nodes will extend usage as workflows land.
+    Multi-step Answer fields (``retrieve_query``, ``retrieve_rounds``,
+    ``needs_more_context``) support plan + re-retrieve loops; unused until
+    those nodes are wired.
     """
 
     request: AgentRequest
@@ -22,3 +24,16 @@ class AgentGraphState(BaseModel):
     structured: dict[str, Any] | None = None
     faithfulness: float | None = None
     error: str | None = None
+    retrieve_query: str | None = Field(
+        default=None,
+        description="Query for the next retrieve (goal, plan rewrite, or follow-up)",
+    )
+    retrieve_rounds: int = Field(
+        default=0,
+        ge=0,
+        description="Number of completed retrieve tool invocations",
+    )
+    needs_more_context: bool = Field(
+        default=False,
+        description="Set by generate when another retrieve round is requested",
+    )

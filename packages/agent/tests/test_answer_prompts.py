@@ -3,8 +3,10 @@ from pydantic import ValidationError
 
 from agentic_doc_agent.graphs import (
     ANSWER_SYSTEM_PROMPT,
+    PLAN_SYSTEM_PROMPT,
     AnswerDraft,
     build_answer_messages,
+    build_plan_messages,
     format_retrieved_context,
 )
 from agentic_doc_agent.llm import ChatRole
@@ -37,6 +39,27 @@ def test_answer_draft_requires_answer() -> None:
 def test_answer_draft_defaults_empty_citations() -> None:
     draft = AnswerDraft(answer="Ownership is …")
     assert draft.citation_chunk_ids == []
+    assert draft.context_sufficient is True
+    assert draft.follow_up_query is None
+
+
+def test_build_plan_messages_structure() -> None:
+    messages = build_plan_messages("What is ownership in Rust?")
+
+    assert len(messages) == 2
+    assert messages[0].role is ChatRole.SYSTEM
+    assert messages[0].content == PLAN_SYSTEM_PROMPT
+    assert "JSON Schema" in messages[0].content or "filled values" in messages[0].content
+    assert messages[1].role is ChatRole.USER
+    user = messages[1].content
+    assert "## Goal" in user
+    assert "What is ownership in Rust?" in user
+    assert "search_query" in user
+
+
+def test_build_plan_messages_rejects_blank_goal() -> None:
+    with pytest.raises(ValueError, match="goal"):
+        build_plan_messages("   ")
 
 
 def test_build_answer_messages_structure() -> None:
@@ -55,6 +78,18 @@ def test_build_answer_messages_structure() -> None:
     assert "Ownership rules." in user
     assert "Borrowing rules." in user
     assert "citation_chunk_ids" in user
+    assert "context_sufficient" in user
+
+
+def test_build_answer_messages_includes_rounds_note_when_re_retrieved() -> None:
+    messages = build_answer_messages(
+        "What is ownership?",
+        [_hit("c1", "Ownership rules.")],
+        retrieve_rounds=2,
+    )
+    user = messages[1].content
+    assert "## Retrieval" in user
+    assert "2 retrieve round" in user
 
 
 def test_build_answer_messages_empty_retrieval() -> None:

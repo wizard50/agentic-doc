@@ -15,6 +15,7 @@ def test_agent_settings_defaults(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("LLM_TEMPERATURE", raising=False)
     monkeypatch.delenv("MAX_TOOL_ROUNDS", raising=False)
+    monkeypatch.delenv("PLAN_ENABLED", raising=False)
     monkeypatch.delenv("DEFAULT_TOP_K", raising=False)
     monkeypatch.delenv("FAITHFULNESS_ENABLED", raising=False)
 
@@ -23,6 +24,7 @@ def test_agent_settings_defaults(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     assert settings.llm_model == "gpt-4o-mini"
     assert settings.llm_temperature == 0.0
     assert settings.max_tool_rounds == 5
+    assert settings.plan_enabled is True
     assert settings.default_top_k == 5
     assert settings.faithfulness_enabled is True
 
@@ -32,6 +34,7 @@ def test_agent_settings_loads_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path
     monkeypatch.setenv("LLM_MODEL", "openai/gpt-4o-mini")
     monkeypatch.setenv("LLM_TEMPERATURE", "0.2")
     monkeypatch.setenv("MAX_TOOL_ROUNDS", "3")
+    monkeypatch.setenv("PLAN_ENABLED", "false")
     monkeypatch.setenv("DEFAULT_TOP_K", "8")
     monkeypatch.setenv("FAITHFULNESS_ENABLED", "false")
 
@@ -40,6 +43,7 @@ def test_agent_settings_loads_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path
     assert settings.llm_model == "openai/gpt-4o-mini"
     assert settings.llm_temperature == 0.2
     assert settings.max_tool_rounds == 3
+    assert settings.plan_enabled is False
     assert settings.default_top_k == 8
     assert settings.faithfulness_enabled is False
 

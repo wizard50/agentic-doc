@@ -13,7 +13,7 @@ from agentic_doc_agent import (
     run_workflow,
 )
 from agentic_doc_agent.evaluation import FaithfulnessVerdict
-from agentic_doc_agent.graphs.answer_models import AnswerDraft
+from agentic_doc_agent.graphs.answer_models import AnswerDraft, PlanDraft
 from agentic_doc_agent.tools import RetrieveTool
 from agentic_doc_rag.models import DocumentChunk, SearchResult
 from agentic_doc_rag.retrieval import RetrievalRequest
@@ -47,11 +47,13 @@ class FakeLlm:
         self,
         draft: AnswerDraft | None = None,
         *,
+        plan: PlanDraft | None = None,
         verdict: FaithfulnessVerdict | None = None,
         error: Exception | None = None,
         evaluate_error: Exception | None = None,
     ) -> None:
         self._draft = draft
+        self._plan = plan or PlanDraft(search_query="planned query")
         self._verdict = verdict or FaithfulnessVerdict(
             score=0.88,
             explanation="Mostly grounded.",
@@ -78,6 +80,8 @@ class FakeLlm:
         temperature: float | None = None,
     ) -> T:
         self.structured_calls.append((messages, schema))
+        if schema is PlanDraft:
+            return schema.model_validate(self._plan.model_dump())
         if schema is FaithfulnessVerdict:
             if self._evaluate_error is not None:
                 raise self._evaluate_error
@@ -112,7 +116,7 @@ def test_run_workflow_answer_happy_path() -> None:
             draft,
             verdict=FaithfulnessVerdict(score=0.91, explanation="Grounded."),
         ),
-        settings=AgentSettings(faithfulness_enabled=True),
+        settings=AgentSettings(faithfulness_enabled=True, plan_enabled=True),
     )
 
     assert result.status is AgentStatus.SUCCEEDED
@@ -122,15 +126,30 @@ def test_run_workflow_answer_happy_path() -> None:
     assert result.structured == draft.model_dump()
     assert [c.chunk_id for c in result.citations] == ["c1"]
     assert len(result.retrieved) == 1
-    assert [s.name for s in result.steps] == ["retrieve", "generate", "evaluate"]
-    assert result.steps[0].kind is StepKind.TOOL
-    assert result.steps[1].kind is StepKind.GENERATE
-    assert result.steps[2].kind is StepKind.EVALUATE
+    assert [s.name for s in result.steps] == ["plan", "retrieve", "generate", "evaluate"]
+    assert result.steps[0].kind is StepKind.PLAN
+    assert result.steps[1].kind is StepKind.TOOL
+    assert result.steps[2].kind is StepKind.GENERATE
+    assert result.steps[3].kind is StepKind.EVALUATE
     assert result.metrics.tool_calls == 1
     assert result.metrics.faithfulness == 0.91
     assert result.metrics.duration_ms is not None
     assert result.metrics.duration_ms >= 0
     assert result.error is None
+
+
+def test_run_workflow_answer_plan_disabled() -> None:
+    draft = AnswerDraft(answer="Ownership rules apply.", citation_chunk_ids=["c1"])
+    result = run_workflow(
+        AgentRequest(goal="What is ownership?"),
+        retrieve_tool=RetrieveTool(FakeRetriever([_hit("c1")])),
+        llm=FakeLlm(draft),
+        settings=AgentSettings(faithfulness_enabled=False, plan_enabled=False),
+    )
+
+    assert result.status is AgentStatus.SUCCEEDED
+    assert result.metrics.faithfulness is None
+    assert [s.name for s in result.steps] == ["retrieve", "generate"]
 
 
 def test_run_workflow_answer_faithfulness_disabled() -> None:
@@ -139,12 +158,12 @@ def test_run_workflow_answer_faithfulness_disabled() -> None:
         AgentRequest(goal="What is ownership?"),
         retrieve_tool=RetrieveTool(FakeRetriever([_hit("c1")])),
         llm=FakeLlm(draft),
-        settings=AgentSettings(faithfulness_enabled=False),
+        settings=AgentSettings(faithfulness_enabled=False, plan_enabled=True),
     )
 
     assert result.status is AgentStatus.SUCCEEDED
     assert result.metrics.faithfulness is None
-    assert [s.name for s in result.steps] == ["retrieve", "generate"]
+    assert [s.name for s in result.steps] == ["plan", "retrieve", "generate"]
 
 
 def test_run_workflow_answer_faithfulness_fail_soft() -> None:
@@ -155,13 +174,13 @@ def test_run_workflow_answer_faithfulness_fail_soft() -> None:
         AgentRequest(goal="What is ownership?"),
         retrieve_tool=RetrieveTool(FakeRetriever([_hit("c1")])),
         llm=FakeLlm(draft, evaluate_error=LlmRequestError("judge down")),
-        settings=AgentSettings(faithfulness_enabled=True),
+        settings=AgentSettings(faithfulness_enabled=True, plan_enabled=True),
     )
 
     assert result.status is AgentStatus.SUCCEEDED
     assert result.answer == draft.answer
     assert result.metrics.faithfulness is None
-    assert [s.name for s in result.steps] == ["retrieve", "generate", "evaluate"]
+    assert [s.name for s in result.steps] == ["plan", "retrieve", "generate", "evaluate"]
     assert "error" in result.steps[-1].payload
 
 
@@ -170,7 +189,7 @@ def test_run_workflow_answer_retrieve_failure() -> None:
         AgentRequest(goal="x"),
         retrieve_tool=RetrieveTool(FakeRetriever(error=RuntimeError("down"))),
         llm=FakeLlm(AnswerDraft(answer="unused", citation_chunk_ids=[])),
-        settings=AgentSettings(faithfulness_enabled=True),
+        settings=AgentSettings(faithfulness_enabled=True, plan_enabled=False),
     )
 
     assert result.status is AgentStatus.FAILED
@@ -190,7 +209,7 @@ def test_run_workflow_answer_generate_failure() -> None:
         AgentRequest(goal="x"),
         retrieve_tool=RetrieveTool(FakeRetriever([_hit("a")])),
         llm=FakeLlm(error=LlmRequestError("provider down")),
-        settings=AgentSettings(faithfulness_enabled=True),
+        settings=AgentSettings(faithfulness_enabled=True, plan_enabled=False),
     )
 
     assert result.status is AgentStatus.FAILED

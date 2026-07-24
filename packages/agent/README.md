@@ -10,11 +10,21 @@ from agentic_doc_agent import AgentRequest, run_workflow
 
 ## Status
 
-**Answer workflow is runnable** end-to-end via `run_workflow` (retrieve → generate → optional faithfulness evaluate → `AgentResult`).
+**Answer workflow is runnable** end-to-end via `run_workflow`:
 
-Faithfulness scoring (LLM-as-judge) is on by default (`FAITHFULNESS_ENABLED=true`) and populates `metrics.faithfulness` (0–1). Disable with `FAITHFULNESS_ENABLED=false`. Judge failures are fail-soft: the answer still succeeds with `faithfulness=None`.
+```
+plan → retrieve → generate ⇄ retrieve → evaluate → AgentResult
+```
 
-**Phoenix tracing:** Answer runs emit OpenInference spans (`agent.run_workflow`, `agent.tool.retrieve`, `agent.generate`, `agent.evaluate`) when tracing is registered. Reuse M1 settings (`PHOENIX_ENABLED`, etc.):
+| Setting | Default | Role |
+|---------|---------|------|
+| `PLAN_ENABLED` | `true` | Rewrite goal into a retrieval query before the first search |
+| `MAX_TOOL_ROUNDS` | `5` | Cap on retrieve tool invocations (blocks infinite re-retrieve) |
+| `FAITHFULNESS_ENABLED` | `true` | LLM-as-judge groundedness score on `metrics.faithfulness` (0–1) |
+
+Plan and faithfulness failures are **fail-soft** (answer can still succeed). Generate may request another retrieve when context is insufficient and a `follow_up_query` is provided.
+
+**Phoenix tracing:** Answer runs emit OpenInference spans (`agent.run_workflow`, `agent.plan`, `agent.tool.retrieve`, `agent.generate`, `agent.evaluate`) when tracing is registered. Reuse M1 settings (`PHOENIX_ENABLED`, etc.):
 
 ```bash
 # Terminal 1
@@ -69,10 +79,20 @@ src/agentic_doc_agent/
   runtime.py         # run_workflow(), list_workflows()
   llm/               # OpenAI-compatible LlmClient (complete + complete_structured)
   tools/             # Tool protocol + RetrieveTool (M1 retriever wrapper)
-  graphs/            # Answer workflow (prompts, nodes, compiled LangGraph)
+  graphs/            # Answer workflow: plan, retrieve, generate loop, evaluate
   evaluation/        # Faithfulness LLM judge (runtime score on AgentResult)
   observability/     # OpenInference / OTEL span helpers for agent runs
 ```
+
+## Multi-step Answer path
+
+1. **plan** (optional) — rewrite the user goal into a search query  
+2. **retrieve** — M1 RAG tool; merges chunks across rounds by chunk id  
+3. **generate** — structured answer; may set `needs_more_context` + `follow_up_query`  
+4. **re-retrieve** — if needed and under `MAX_TOOL_ROUNDS`  
+5. **evaluate** (optional) — faithfulness score  
+
+Disable planning with `PLAN_ENABLED=false` for lower latency (retrieve uses the raw goal).
 
 ## Observability
 

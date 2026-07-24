@@ -5,6 +5,10 @@ Requires (from the workspace root):
   - Indexed corpus: ``uv run explorer ingest``
   - LLM credentials in ``.env`` (``LLM_API_KEY``; optional ``LLM_BASE_URL`` / ``LLM_MODEL``)
 
+Optional:
+  - ``PHOENIX_ENABLED=true`` to export OpenInference spans
+  - ``PLAN_ENABLED`` / ``MAX_TOOL_ROUNDS`` / ``FAITHFULNESS_ENABLED``
+
 Usage:
   uv run python scripts/smoke_answer.py
   uv run python scripts/smoke_answer.py --goal "What is borrowing?"
@@ -28,6 +32,31 @@ def _require_workspace_root() -> None:
         file=sys.stderr,
     )
     raise SystemExit(1)
+
+
+def _steps_look_valid(step_names: list[str]) -> bool:
+    """Accept multi-step Answer timelines (plan, re-retrieve, optional evaluate)."""
+    if not step_names:
+        return False
+    names = list(step_names)
+    # Optional leading plan (when PLAN_ENABLED)
+    if names and names[0] == "plan":
+        names = names[1:]
+    if not names or names[0] != "retrieve":
+        return False
+    # One or more retrieve/generate pairs (re-retrieve loop)
+    i = 0
+    pairs = 0
+    while i + 1 < len(names) and names[i] == "retrieve" and names[i + 1] == "generate":
+        pairs += 1
+        i += 2
+    if pairs < 1:
+        return False
+    # Optional trailing evaluate
+    if i < len(names):
+        if names[i:] != ["evaluate"]:
+            return False
+    return True
 
 
 def main() -> int:
@@ -99,17 +128,15 @@ def main() -> int:
     if not answer.strip():
         print("SMOKE FAIL: empty answer", file=sys.stderr)
         return 1
-    allowed_steps = (
-        ["retrieve", "generate"],
-        ["retrieve", "generate", "evaluate"],
-    )
-    if step_names not in allowed_steps:
+    if not _steps_look_valid(step_names):
         print(
-            f"SMOKE FAIL: unexpected steps {step_names}",
+            f"SMOKE FAIL: unexpected steps {step_names}\n"
+            "Expected optional plan, then one or more retrieve→generate pairs, "
+            "optional evaluate.",
             file=sys.stderr,
         )
         return 1
-    if step_names == ["retrieve", "generate", "evaluate"] and result.metrics.faithfulness is None:
+    if step_names and step_names[-1] == "evaluate" and result.metrics.faithfulness is None:
         print(
             "SMOKE WARN: evaluate ran but faithfulness is None (judge may have failed)",
             file=sys.stderr,

@@ -19,7 +19,7 @@ from agentic_doc_agent import (
     run_workflow,
 )
 from agentic_doc_agent.evaluation import FaithfulnessVerdict
-from agentic_doc_agent.graphs.answer_models import AnswerDraft
+from agentic_doc_agent.graphs.answer_models import AnswerDraft, PlanDraft
 from agentic_doc_agent.observability.tracing import (
     get_tracer,
     mark_agent_span,
@@ -73,9 +73,11 @@ class FakeLlm:
         self,
         draft: AnswerDraft,
         *,
+        plan: PlanDraft | None = None,
         verdict: FaithfulnessVerdict | None = None,
     ) -> None:
         self._draft = draft
+        self._plan = plan or PlanDraft(search_query="planned query")
         self._verdict = verdict or FaithfulnessVerdict(
             score=0.9,
             explanation="Grounded.",
@@ -98,6 +100,8 @@ class FakeLlm:
         model: str | None = None,
         temperature: float | None = None,
     ) -> T:
+        if schema is PlanDraft:
+            return schema.model_validate(self._plan.model_dump())
         if schema is FaithfulnessVerdict:
             return schema.model_validate(self._verdict.model_dump())
         return schema.model_validate(self._draft.model_dump())
@@ -158,12 +162,13 @@ def test_run_workflow_emits_parent_and_child_spans(
         AgentRequest(goal="What is ownership?"),
         retrieve_tool=RetrieveTool(FakeRetriever([_hit()])),
         llm=FakeLlm(draft),
-        settings=AgentSettings(faithfulness_enabled=True),
+        settings=AgentSettings(faithfulness_enabled=True, plan_enabled=True),
     )
 
     assert result.status is AgentStatus.SUCCEEDED
     names = [span.name for span in span_exporter.get_finished_spans()]
     assert "agent.run_workflow" in names
+    assert "agent.plan" in names
     assert "agent.tool.retrieve" in names
     assert "agent.generate" in names
     assert "agent.evaluate" in names
@@ -189,7 +194,7 @@ def test_run_workflow_skips_evaluate_span_when_disabled(
         AgentRequest(goal="ownership?"),
         retrieve_tool=RetrieveTool(FakeRetriever([_hit()])),
         llm=FakeLlm(draft),
-        settings=AgentSettings(faithfulness_enabled=False),
+        settings=AgentSettings(faithfulness_enabled=False, plan_enabled=False),
     )
 
     assert result.status is AgentStatus.SUCCEEDED
@@ -198,6 +203,7 @@ def test_run_workflow_skips_evaluate_span_when_disabled(
     assert "agent.tool.retrieve" in names
     assert "agent.generate" in names
     assert "agent.evaluate" not in names
+    assert "agent.plan" not in names
 
 
 def test_run_workflow_failed_retrieve_still_has_parent(
@@ -207,7 +213,7 @@ def test_run_workflow_failed_retrieve_still_has_parent(
         AgentRequest(goal="x"),
         retrieve_tool=RetrieveTool(FakeRetriever(error=RuntimeError("down"))),
         llm=FakeLlm(AnswerDraft(answer="unused", citation_chunk_ids=[])),
-        settings=AgentSettings(faithfulness_enabled=True),
+        settings=AgentSettings(faithfulness_enabled=True, plan_enabled=False),
     )
 
     assert result.status is AgentStatus.FAILED
@@ -230,7 +236,7 @@ def test_truncate_long_output_on_parent_span(span_exporter: InMemorySpanExporter
         AgentRequest(goal="q"),
         retrieve_tool=RetrieveTool(FakeRetriever([_hit()])),
         llm=FakeLlm(draft),
-        settings=AgentSettings(faithfulness_enabled=False),
+        settings=AgentSettings(faithfulness_enabled=False, plan_enabled=False),
     )
 
     parent = next(s for s in span_exporter.get_finished_spans() if s.name == "agent.run_workflow")
