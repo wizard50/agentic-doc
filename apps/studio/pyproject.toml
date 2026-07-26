@@ -1,0 +1,27 @@
+[project]
+name = "studio"
+version = "0.1.0"
+description = "M2 Doc Agent — Streamlit UI for agentic documentation workflows"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "agentic-doc-core",
+    "agentic-doc-rag",
+    "agentic-doc-agent",
+    "streamlit>=1.42.0",
+]
+
+[project.scripts]
+studio = "agentic_doc_studio.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.23,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "agentic_doc_studio"
+
+[tool.uv.sources]
+agentic-doc-core = { workspace = true }
+agentic-doc-rag = { workspace = true }
+agentic-doc-agent = { workspace = true }
