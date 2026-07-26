@@ -17,6 +17,7 @@ packages/
   agent/    # M2 agentic layer (LangGraph workflows, tools, generation eval)
 apps/
   explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
+  studio/   # M2 Doc Agent — Streamlit UI for agent workflows
 ```
 
 ## Setup
@@ -44,6 +45,7 @@ The `packages/agent` library exposes a grounded multi-step **Answer** path: opti
 uv run explorer ingest                              # required — empty index → 0 retrieved chunks
 # set LLM_API_KEY in .env (optional LLM_BASE_URL / LLM_MODEL for OpenRouter, etc.)
 uv run python scripts/smoke_answer.py               # live smoke; prints full answer
+uv run studio                                       # Doc Agent Streamlit UI (Answer demo)
 ```
 
 ```python
@@ -53,7 +55,7 @@ result = run_workflow(AgentRequest(goal="What is ownership in Rust?"))
 print(result.status, result.answer, result.metrics.faithfulness)
 ```
 
-Details: [`packages/agent/README.md`](packages/agent/README.md). Tunables: `PLAN_ENABLED`, `MAX_TOOL_ROUNDS`, `FAITHFULNESS_ENABLED` (defaults on where noted). Phoenix spans when `PHOENIX_ENABLED=true`. Compare/gap workflows and an agent UI are not shipped yet.
+Details: [`packages/agent/README.md`](packages/agent/README.md). UI: [`apps/studio/README.md`](apps/studio/README.md). Tunables: `PLAN_ENABLED`, `MAX_TOOL_ROUNDS`, `FAITHFULNESS_ENABLED` (defaults on where noted). Phoenix spans when `PHOENIX_ENABLED=true`. Compare/gap workflows are planned; the Doc Agent UI shows roadmap placeholders.
 
 ## M1 explorer
 

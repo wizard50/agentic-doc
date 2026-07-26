@@ -38,7 +38,8 @@ Still stubbed / not implemented:
 
 - Compare and gap-report workflows
 - Offline generation-eval CLI / golden set
-- Demo UI (planned as a separate app)
+
+**Demo UI:** [`apps/studio`](../../apps/studio/) — **Doc Agent** Streamlit app (`uv run studio`) for live Answer runs with timeline, citations, evidence, and faithfulness.
 
 ## Prerequisites (live runs)
 
