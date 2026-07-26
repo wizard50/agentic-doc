@@ -20,7 +20,7 @@ Build agentic capabilities on top of the completed M1 documentation RAG core:
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
-**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is multi-step (LangGraph plan → retrieve → generate ⇄ re-retrieve → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces).
+**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is multi-step (LangGraph plan → retrieve → generate ⇄ re-retrieve → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces). **Doc Agent UI:** `uv run studio` (`apps/studio`) — Answer demo with timeline, citations, evidence, and faithfulness metrics.
 
 ## Milestones
 
@@ -47,6 +47,7 @@ Delivered documentation RAG:
 - Agent Phoenix/OpenInference spans on Answer runs (`agent.run_workflow` + plan/tool/generate/evaluate)
 - Structured outputs with Pydantic models
 - Developer-focused workflows (analysis, comparison, gap detection, report generation) — Answer multi-step done; Compare/Gap planned
+- **Doc Agent UI** (`apps/studio`, `uv run studio`): Streamlit demo for Answer with metrics, step timeline, citations, and evidence; Compare/Gap as gallery placeholders
 - Focus on Software Engineering / technical documentation domain
 
 ### Milestone 3 – Production Backend
@@ -62,7 +63,7 @@ Delivered documentation RAG:
 - **Observability**: Arize Phoenix (preferred)
 - **Vector Store**: Chroma (local development) — abstraction layer for future backends (pgvector, LanceDB, Qdrant, etc.)
 - **LLM**: OpenAI-compatible APIs (via LiteLLM when needed)
-- **Frontend**: Streamlit (rapid iteration; M1 explorer)
+- **Frontend**: Streamlit (rapid iteration; M1 explorer, M2 Doc Agent studio)
 - **Data Models**: Pydantic v2 (mandatory for all structured data)
 - **Python version**: 3.13+
 

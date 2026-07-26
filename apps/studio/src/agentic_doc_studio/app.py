@@ -6,6 +6,8 @@ from agentic_doc_agent import (
     AgentRequest,
     AgentResult,
     AgentStatus,
+    Citation,
+    StepEvent,
     WorkflowId,
     get_agent_settings,
     run_workflow,
@@ -13,12 +15,21 @@ from agentic_doc_agent import (
 from agentic_doc_core.config import get_phoenix_settings
 from agentic_doc_rag.config import RagSettings, get_rag_settings
 from agentic_doc_rag.ingest import IngestEmptyCorpusError, IngestSourceNotFoundError
+from agentic_doc_rag.models import SearchResult
 from agentic_doc_rag.observability import register_tracing
 from agentic_doc_rag.retrieval import Retriever, create_retriever
 from agentic_doc_studio.constants import (
     ARCHITECTURE_SUMMARY,
     EXAMPLE_GOALS,
     PHOENIX_UI_URL,
+    PREVIEW_LENGTH,
+    # WORKFLOW_CARDS,  # re-enable with workflow gallery when a second workflow ships
+)
+from agentic_doc_studio.display import (
+    faithfulness_caption,
+    format_faithfulness,
+    retrieved_by_chunk_id,
+    step_title,
 )
 from agentic_doc_studio.startup_ingest import maybe_run_startup_ingest
 from agentic_doc_studio.workspace import require_workspace_root
@@ -102,6 +113,27 @@ def _render_llm_missing() -> None:
     )
 
 
+# Re-enable when a second workflow is available (see WORKFLOW_CARDS in constants).
+# def _render_workflow_gallery() -> None:
+#     """Product map: Answer is live; Compare / Gap report are non-runnable placeholders."""
+#     st.subheader("Workflows")
+#     cols = st.columns(len(WORKFLOW_CARDS))
+#     for col, card in zip(cols, WORKFLOW_CARDS, strict=True):
+#         with col:
+#             st.markdown(f"### {card['title']}")
+#             if card["status"] == "live":
+#                 st.success(card["badge"])
+#             elif card["status"] == "coming_soon":
+#                 st.warning(card["badge"])
+#             else:
+#                 st.info(card["badge"])
+#             st.caption(card["blurb"])
+#     st.caption(
+#         "Only **Answer** is runnable in this demo. Compare and Gap report share the same "
+#         "`AgentResult` contract when they land — no dead API buttons here."
+#     )
+
+
 def _render_sidebar(
     settings: RagSettings,
     document_count: int,
@@ -134,32 +166,119 @@ def _render_sidebar(
         st.markdown(ARCHITECTURE_SUMMARY)
 
 
-def _render_result_preview(result: AgentResult) -> None:
-    """Minimal result display; metrics strip and tabs land in later steps."""
-    st.subheader("Result")
-    if result.status is AgentStatus.SUCCEEDED:
-        st.success(f"Status: `{result.status.value}`")
+def _render_chunk_text(text: str) -> None:
+    if len(text) > PREVIEW_LENGTH:
+        st.markdown(text[:PREVIEW_LENGTH] + "...")
+        with st.popover("Show full chunk"):
+            st.markdown(text)
     else:
-        st.error(f"Status: `{result.status.value}`")
+        st.markdown(text)
+
+
+def _render_timeline(steps: list[StepEvent]) -> None:
+    if not steps:
+        st.info("No steps recorded for this run.")
+        return
+    for index, step in enumerate(steps, start=1):
+        with st.expander(step_title(index, step), expanded=index == 1):
+            if step.payload:
+                st.json(step.payload)
+            else:
+                st.caption("No payload for this step.")
+
+
+def _render_citations(
+    citations: list[Citation],
+    retrieved: list[SearchResult],
+) -> None:
+    if not citations:
+        st.info("No citations for this run.")
+        return
+    by_id = retrieved_by_chunk_id(retrieved)
+    for index, citation in enumerate(citations, start=1):
+        section = citation.section_path or "—"
+        score = f"{citation.score:.4f}" if citation.score is not None else "—"
+        with st.expander(
+            f"**{index}.** {section}  ·  score `{score}`",
+            expanded=index == 1,
+        ):
+            st.markdown(f"**Chunk id:** `{citation.chunk_id}`")
+            if citation.source:
+                st.markdown(f"**Source:** `{citation.source}`")
+            if citation.quote:
+                st.markdown(f"> {citation.quote}")
+            hit = by_id.get(citation.chunk_id)
+            if hit is None:
+                st.caption("Full chunk not found in the retrieved set for this run.")
+            else:
+                _render_chunk_text(hit.chunk.text)
+
+
+def _render_evidence(retrieved: list[SearchResult]) -> None:
+    if not retrieved:
+        st.info("No retrieved passages for this run.")
+        return
+    st.caption("Chunks available to the generator (may be larger than the citation set).")
+    for index, hit in enumerate(retrieved, start=1):
+        section = hit.chunk.metadata.get("section_path", "—")
+        source = hit.chunk.metadata.get("source", "—")
+        with st.expander(
+            f"**{index}.** {section}  ·  score `{hit.score:.4f}`",
+            expanded=index == 1,
+        ):
+            st.markdown(f"**Source:** `{source}`")
+            st.markdown(f"**Chunk id:** `{hit.chunk.id}`")
+            _render_chunk_text(hit.chunk.text)
+
+
+def _render_result(result: AgentResult) -> None:
+    """Status badge, metrics strip, answer, and detail tabs."""
+    st.subheader("Result")
+
+    if result.status is AgentStatus.SUCCEEDED:
+        st.success(f"**Status:** `{result.status.value}`")
+    else:
+        st.error(f"**Status:** `{result.status.value}`")
         if result.error:
             st.error(result.error)
 
+    faith = result.metrics.faithfulness
+    duration = result.metrics.duration_ms
+    cols = st.columns(4)
+    cols[0].metric(
+        "Faithfulness",
+        format_faithfulness(faith),
+        help="LLM-as-judge groundedness of the answer vs retrieved context (0-1)",
+    )
+    cols[0].caption(faithfulness_caption(faith))
+    cols[1].metric("Tool calls", result.metrics.tool_calls)
+    cols[2].metric(
+        "Duration",
+        f"{duration} ms" if duration is not None else "—",
+    )
+    cols[3].metric("Citations", len(result.citations))
+
+    st.markdown("#### Answer")
     if result.answer:
         st.markdown(result.answer)
     elif result.status is AgentStatus.SUCCEEDED:
         st.info("Run succeeded but produced no answer text.")
+    else:
+        st.caption("No answer text for this run.")
 
-    st.caption(
-        f"Steps: {len(result.steps)} · Citations: {len(result.citations)} · "
-        f"Retrieved: {len(result.retrieved)} · "
-        f"Tool calls: {result.metrics.tool_calls}"
-        + (
-            f" · Duration: {result.metrics.duration_ms} ms"
-            if result.metrics.duration_ms is not None
-            else ""
-        )
+    tab_timeline, tab_citations, tab_evidence = st.tabs(
+        [
+            f"Timeline ({len(result.steps)})",
+            f"Citations ({len(result.citations)})",
+            f"Evidence ({len(result.retrieved)})",
+        ]
     )
-    st.info("Metrics strip, Timeline, Citations, and Evidence tabs land in later steps.")
+    with tab_timeline:
+        _render_timeline(result.steps)
+    with tab_citations:
+        _render_citations(result.citations, result.retrieved)
+    with tab_evidence:
+        _render_evidence(result.retrieved)
 
 
 with st.spinner("Loading index (first start may build the demo corpus)..."):
@@ -181,9 +300,12 @@ if document_count == 0:
     _render_empty_corpus(settings, startup_error)
     st.stop()
 
+# _render_workflow_gallery()  # re-enable when a second workflow ships
+
 if not llm_ready:
     _render_llm_missing()
 
+st.markdown("#### Run Answer")
 # Form so Enter in the goal field submits (same as clicking Run answer).
 with st.form("answer_form", clear_on_submit=False):
     st.text_input(
@@ -216,7 +338,7 @@ if st.session_state.pop("run_answer", False):
 
 last_result = st.session_state.get("last_result")
 if isinstance(last_result, AgentResult):
-    _render_result_preview(last_result)
+    _render_result(last_result)
 elif not llm_ready:
     pass
 else:
