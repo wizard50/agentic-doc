@@ -2,7 +2,10 @@
 
 Production-grade Agentic RAG for technical documentation — with observability, evaluation, and clean architecture.
 
-**Live demo:** [Doc Explorer](https://doc-explorer.streamlit.app/) — M1 RAG search over the Rust book.
+**Live demos:**
+
+- [Doc Explorer](https://doc-explorer.streamlit.app/) — M1 RAG search over the Rust book  
+- [Doc Agent](https://agentic-doc.streamlit.app/) — M2 multi-step Answer workflow (grounded Q&A)
 
 The workspace is **domain-agnostic**: packages and apps are built to work with technical documentation corpora (Markdown, PDFs, and similar). For local development, [The Rust Programming Language](https://github.com/rust-lang/book) is the reference corpus.
 
@@ -43,10 +46,14 @@ The `packages/agent` library exposes a grounded multi-step **Answer** path: opti
 
 ```bash
 uv run explorer ingest                              # required — empty index → 0 retrieved chunks
-# set LLM_API_KEY in .env (optional LLM_BASE_URL / LLM_MODEL for OpenRouter, etc.)
+# set LLM_API_KEY + LLM_MODEL in .env (and LLM_BASE_URL for Gemini/OpenRouter, etc.)
 uv run python scripts/smoke_answer.py               # live smoke; prints full answer
 uv run studio                                       # Doc Agent Streamlit UI (Answer demo)
 ```
+
+**Live Doc Agent:** [https://agentic-doc.streamlit.app/](https://agentic-doc.streamlit.app/)
+
+![Doc Agent Answer UI](assets/agentic-doc-screenshot.png)
 
 ```python
 from agentic_doc_agent import AgentRequest, run_workflow
@@ -55,7 +62,7 @@ result = run_workflow(AgentRequest(goal="What is ownership in Rust?"))
 print(result.status, result.answer, result.metrics.faithfulness)
 ```
 
-Details: [`packages/agent/README.md`](packages/agent/README.md). UI: [`apps/studio/README.md`](apps/studio/README.md). Tunables: `PLAN_ENABLED`, `MAX_TOOL_ROUNDS`, `FAITHFULNESS_ENABLED` (defaults on where noted). Phoenix spans when `PHOENIX_ENABLED=true`. Compare/gap workflows are planned; the Doc Agent UI shows roadmap placeholders.
+Details: [`packages/agent/README.md`](packages/agent/README.md). UI: [`apps/studio/README.md`](apps/studio/README.md) (deploy secrets, Gemini/OpenRouter examples). Studio uses `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` — not `EVAL_LLM_MODEL` (that is only for `explorer eval --llm`). Tunables: `PLAN_ENABLED`, `MAX_TOOL_ROUNDS`, `FAITHFULNESS_ENABLED`. Phoenix spans when `PHOENIX_ENABLED=true`.
 
 ## M1 explorer
 
