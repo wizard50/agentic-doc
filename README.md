@@ -21,7 +21,17 @@ packages/
 apps/
   explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
   studio/   # M2 Doc Agent — Streamlit UI for agent workflows
+  api/      # M3 production FastAPI backend (skeleton)
 ```
+
+## M3 API (skeleton)
+
+```bash
+uv run api                    # http://localhost:8000 — /health, /ready, /docs
+uv run pytest apps/api -q
+```
+
+Details: [`apps/api/README.md`](apps/api/README.md).
 
 ## Setup
 

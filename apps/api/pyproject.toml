@@ -1,0 +1,24 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "M3 production FastAPI backend for Agentic Doc"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "agentic-doc-core",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[project.scripts]
+api = "agentic_doc_api.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.23,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "agentic_doc_api"
+
+[tool.uv.sources]
+agentic-doc-core = { workspace = true }

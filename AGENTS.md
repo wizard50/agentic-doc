@@ -51,9 +51,10 @@ Delivered documentation RAG:
 - Focus on Software Engineering / technical documentation domain
 
 ### Milestone 3 – Production Backend
-- FastAPI backend orchestrating M1 + M2
+- **Phase 0 (skeleton):** `apps/api` — FastAPI app factory, settings, `/health` + `/ready`, CORS, request IDs, OpenAPI, Dockerfile (`uv run api`)
+- FastAPI backend orchestrating M1 + M2 (planned)
+- Supabase (Auth + Postgres) + Alembic for persistence (planned)
 - Background job processing
-- PostgreSQL + Alembic for persistence
 - Guardrails, cost tracking, and production observability
 - Docker + deployment setup
 - Clean API for both simple RAG and complex agentic workflows
