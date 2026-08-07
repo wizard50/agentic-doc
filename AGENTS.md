@@ -7,20 +7,18 @@
 - **Approach**: Incremental delivery across three milestones (see below).
 
 ## Current Focus
-**Milestone 2 – Agentic Intelligence Layer**
+**Milestone 3 – Production Backend**
 
-Build agentic capabilities on top of the completed M1 documentation RAG core:
+Build a production API and backend on top of the completed M1 RAG core and M2 Answer agent:
 
-- Multi-step reasoning, planning, and tool use (LangGraph)
-- Answer generation grounded in retrieved context
-- Faithfulness and related answer-quality metrics
-- Structured outputs with Pydantic models
-- Developer-focused workflows (analysis, comparison, gap detection, report generation)
-- Keep agent logic testable, observable, and visible in Phoenix
+- FastAPI orchestration of RAG + agent workflows
+- Auth, persistence, background jobs (planned)
+- Guardrails, cost tracking, production observability
+- Docker + deployment
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
-**M2 library:** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` for agent workflows (`packages/agent`). The **Answer** workflow is multi-step (LangGraph plan → retrieve → generate ⇄ re-retrieve → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces). **Doc Agent UI:** `uv run studio` (`apps/studio`) — Answer demo with timeline, citations, evidence, and faithfulness metrics.
+**Agent layer (M2, closed):** Prefer `from agentic_doc_agent import run_workflow, AgentRequest` (`packages/agent`). The **Answer** workflow is multi-step (LangGraph plan → retrieve → generate ⇄ re-retrieve → optional faithfulness evaluate) with Phoenix/OpenInference spans when tracing is registered. Live smoke: `uv run explorer ingest` then `uv run python scripts/smoke_answer.py` (requires `LLM_API_KEY`; `PHOENIX_ENABLED=true` for traces). **Doc Agent UI:** `uv run studio` (`apps/studio`) — Answer demo with timeline, citations, evidence, and faithfulness metrics.
 
 ## Milestones
 
@@ -37,8 +35,10 @@ Delivered documentation RAG:
 - **Evaluation:** golden-set retrieval metrics (hit@k, MRR, recall@k, per-tag) and optional LLM document relevance
 - **Apps / API:** Streamlit explorer + `ingest` / `eval` / `ui` CLI; public `agentic_doc_rag` exports
 
-### Milestone 2 – Agentic Intelligence Layer ← Current
-- Agentic capabilities on top of Milestone 1
+### Milestone 2 – Agentic Intelligence Layer ← Closed
+
+Delivered agentic layer on top of Milestone 1:
+
 - Multi-step reasoning, planning, and tool use (LangGraph)
 - **Answer workflow:** `run_workflow(AgentRequest(...))` — plan (query rewrite), retrieve tool, structured generation, optional re-retrieve (`MAX_TOOL_ROUNDS`), optional faithfulness score
 - Answer generation grounded in retrieved context
@@ -46,11 +46,10 @@ Delivered documentation RAG:
 - Multi-step Answer path (`PLAN_ENABLED`, re-retrieve when context is insufficient)
 - Agent Phoenix/OpenInference spans on Answer runs (`agent.run_workflow` + plan/tool/generate/evaluate)
 - Structured outputs with Pydantic models
-- Developer-focused workflows (analysis, comparison, gap detection, report generation) — Answer multi-step done; Compare/Gap planned
-- **Doc Agent UI** (`apps/studio`, `uv run studio`): Streamlit demo for Answer with metrics, step timeline, citations, and evidence; Compare/Gap as gallery placeholders
+- **Doc Agent UI** (`apps/studio`, `uv run studio`): Streamlit demo for Answer with metrics, step timeline, citations, and evidence
 - Focus on Software Engineering / technical documentation domain
 
-### Milestone 3 – Production Backend
+### Milestone 3 – Production Backend ← Current
 - **Phase 0 (skeleton):** `apps/api` — FastAPI app factory, settings, `/health` + `/ready`, CORS, request IDs, OpenAPI, Dockerfile (`uv run api`)
 - FastAPI backend orchestrating M1 + M2 (planned)
 - Supabase (Auth + Postgres) + Alembic for persistence (planned)

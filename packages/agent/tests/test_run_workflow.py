@@ -220,14 +220,3 @@ def test_run_workflow_answer_generate_failure() -> None:
     assert [s.name for s in result.steps] == ["retrieve", "generate"]
 
 
-def test_run_workflow_unimplemented_returns_failed() -> None:
-    result = run_workflow(
-        AgentRequest(workflow=WorkflowId.COMPARE, goal="compare A and B"),
-        retrieve_tool=RetrieveTool(FakeRetriever()),
-        llm=FakeLlm(AnswerDraft(answer="nope", citation_chunk_ids=[])),
-    )
-
-    assert result.status is AgentStatus.FAILED
-    assert result.error is not None
-    assert "not implemented" in result.error
-    assert result.steps == []

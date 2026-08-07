@@ -58,15 +58,6 @@ def run_workflow(
         set_input_value(span, request.goal)
         span.set_attribute("workflow", request.workflow.value)
 
-        if request.workflow is not WorkflowId.ANSWER:
-            result = _failed_result(
-                request,
-                error=f"Workflow {request.workflow!r} is not implemented yet",
-                duration_ms=_elapsed_ms(started),
-            )
-            _annotate_workflow_span(span, result)
-            return result
-
         try:
             tool = retrieve_tool or _default_retrieve_tool(resolved, retriever)
             client = llm if llm is not None else create_llm_client(resolved)

@@ -1,14 +1,17 @@
 # agentic-doc-core
 
-Shared configuration and foundational types for the **agentic-doc** workspace.
+Shared configuration for the **agentic-doc** workspace.
 
-## Status
+## What it provides
 
-WIP scaffold — currently provides Pydantic-based settings (`CoreSettings`) used across packages.
+- **`CoreSettings`** — environment, log level, shared LLM credential env (`LLM_API_KEY`, `LLM_BASE_URL`)
+- **`PhoenixSettings`** — Phoenix/OpenTelemetry tracing toggles (`PHOENIX_*`)
+
+Used by `agentic-doc-rag`, `agentic-doc-agent`, and the apps.
 
 ## Layout
 
 ```
 src/agentic_doc_core/
-  config.py    # Environment and logging settings
+  config.py    # CoreSettings, PhoenixSettings, getters
 ```

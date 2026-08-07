@@ -9,40 +9,6 @@ EXAMPLE_GOALS = (
     "How do traits work in Rust?",
 )
 
-# Product map for the gallery — only Answer is runnable in v1.
-WORKFLOW_CARDS = (
-    {
-        "id": "answer",
-        "title": "Answer",
-        "status": "live",
-        "badge": "Live",
-        "blurb": (
-            "Multi-step grounded Q&A: plan a search query, retrieve evidence, "
-            "generate with citations, optional re-retrieve, faithfulness score."
-        ),
-    },
-    {
-        "id": "compare",
-        "title": "Compare",
-        "status": "coming_soon",
-        "badge": "Coming soon",
-        "blurb": (
-            "Side-by-side analysis of two documentation topics or APIs — "
-            "shared evidence, differences, and structured findings."
-        ),
-    },
-    {
-        "id": "gap_report",
-        "title": "Gap report",
-        "status": "planned",
-        "badge": "Planned",
-        "blurb": (
-            "Find missing or thin coverage in the corpus relative to a goal "
-            "or checklist — useful for docs quality reviews."
-        ),
-    },
-)
-
 ARCHITECTURE_SUMMARY = """
 **What this demo is**
 

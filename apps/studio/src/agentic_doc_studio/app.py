@@ -23,7 +23,6 @@ from agentic_doc_studio.constants import (
     EXAMPLE_GOALS,
     PHOENIX_UI_URL,
     PREVIEW_LENGTH,
-    # WORKFLOW_CARDS,  # re-enable with workflow gallery when a second workflow ships
 )
 from agentic_doc_studio.display import (
     faithfulness_caption,
@@ -111,27 +110,6 @@ def _render_llm_missing() -> None:
         "# LLM_MODEL=openai/gpt-4o-mini",
         language="bash",
     )
-
-
-# Re-enable when a second workflow is available (see WORKFLOW_CARDS in constants).
-# def _render_workflow_gallery() -> None:
-#     """Product map: Answer is live; Compare / Gap report are non-runnable placeholders."""
-#     st.subheader("Workflows")
-#     cols = st.columns(len(WORKFLOW_CARDS))
-#     for col, card in zip(cols, WORKFLOW_CARDS, strict=True):
-#         with col:
-#             st.markdown(f"### {card['title']}")
-#             if card["status"] == "live":
-#                 st.success(card["badge"])
-#             elif card["status"] == "coming_soon":
-#                 st.warning(card["badge"])
-#             else:
-#                 st.info(card["badge"])
-#             st.caption(card["blurb"])
-#     st.caption(
-#         "Only **Answer** is runnable in this demo. Compare and Gap report share the same "
-#         "`AgentResult` contract when they land — no dead API buttons here."
-#     )
 
 
 def _render_sidebar(
