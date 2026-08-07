@@ -1,7 +1,7 @@
 [project]
 name = "studio"
 version = "0.1.0"
-description = "M2 Doc Agent — Streamlit UI for agentic documentation workflows"
+description = "M2 Doc Agent — Streamlit UI for the Answer workflow"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

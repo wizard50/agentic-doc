@@ -1,5 +1,5 @@
 import agentic_doc_agent as agent
-from agentic_doc_agent import AgentRequest, WorkflowId
+from agentic_doc_agent import WorkflowId
 
 
 def test_public_api_exports_core_symbols() -> None:
@@ -38,12 +38,4 @@ def test_public_api_all_names_are_importable() -> None:
 
 def test_list_workflows_returns_all_ids() -> None:
     workflows = agent.list_workflows()
-    assert set(workflows) == set(WorkflowId)
-
-
-def test_run_workflow_unimplemented_workflow_fails_cleanly() -> None:
-    request = AgentRequest(goal="Compare types", workflow=WorkflowId.COMPARE)
-    result = agent.run_workflow(request)
-    assert result.status.value == "failed"
-    assert result.error is not None
-    assert "not implemented" in result.error
+    assert workflows == [WorkflowId.ANSWER]

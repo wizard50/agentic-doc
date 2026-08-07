@@ -10,9 +10,8 @@ from agentic_doc_agent.models import (
 
 
 def test_workflow_ids() -> None:
+    assert list(WorkflowId) == [WorkflowId.ANSWER]
     assert WorkflowId.ANSWER.value == "answer"
-    assert WorkflowId.COMPARE.value == "compare"
-    assert WorkflowId.GAP_REPORT.value == "gap_report"
 
 
 def test_agent_request_requires_goal() -> None:

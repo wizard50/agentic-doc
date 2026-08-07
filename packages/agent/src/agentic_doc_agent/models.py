@@ -9,11 +9,13 @@ from agentic_doc_rag.models import SearchResult
 
 
 class WorkflowId(StrEnum):
-    """Supported developer-focused workflows (M2)."""
+    """Supported agent workflows.
+
+    Additional values can be added later without changing the
+    ``AgentRequest`` / ``AgentResult`` contract.
+    """
 
     ANSWER = "answer"
-    COMPARE = "compare"
-    GAP_REPORT = "gap_report"
 
 
 class AgentStatus(StrEnum):

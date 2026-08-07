@@ -17,10 +17,10 @@ See [AGENTS.md](AGENTS.md) for milestones and architecture principles.
 packages/
   core/     # Shared config and foundational types
   rag/      # RAG retrieval layer (ingest, parsers, retrieval, eval)
-  agent/    # M2 agentic layer (LangGraph workflows, tools, generation eval)
+  agent/    # M2 agentic layer (Answer workflow)
 apps/
   explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
-  studio/   # M2 Doc Agent — Streamlit UI for agent workflows
+  studio/   # M2 Doc Agent — Streamlit UI for the Answer workflow
   api/      # M3 production FastAPI backend (skeleton)
 ```
 
@@ -78,7 +78,7 @@ Details: [`packages/agent/README.md`](packages/agent/README.md). UI: [`apps/stud
 
 **Live demo:** [https://doc-explorer.streamlit.app/](https://doc-explorer.streamlit.app/)
 
-![Doc Explorer search UI](assets/doc-explorer-screenhot.png)
+![Doc Explorer search UI](assets/doc-explorer-screenshot.png)
 
 ```bash
 uv run explorer ingest                          # index default corpus (Rust book Markdown)

@@ -1,6 +1,6 @@
 # studio
 
-M2 portfolio app — **Doc Agent** Streamlit UI for agentic documentation workflows.
+M2 **Doc Agent** Streamlit UI — Answer workflow demo for agentic documentation Q&A.
 
 **Live demo:** [https://agentic-doc.streamlit.app/](https://agentic-doc.streamlit.app/)
 
