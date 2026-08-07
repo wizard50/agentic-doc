@@ -1,0 +1,35 @@
+name: Streamlit Keep-Alive
+
+on:
+  schedule:
+    # Every 6 hours (well under Streamlit Community Cloud's ~12h sleep).
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: streamlit-keepalive
+  cancel-in-progress: true
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Keep Streamlit app awake
+        env:
+          STREAMLIT_APP_URL: https://agentic-doc.streamlit.app/
+        run: python scripts/keepalive.py
