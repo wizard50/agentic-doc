@@ -2,7 +2,9 @@
 
 M3 production FastAPI backend — HTTP boundary for Agentic Doc.
 
-Phase 0 delivers a **runnable skeleton**: settings, health probes, CORS, request IDs, OpenAPI. Auth, Supabase, retrieval, and agent workflows land in later M3 phases.
+Phase 0 is the **runnable skeleton**: settings, health probes, CORS, request IDs, OpenAPI.
+
+The M3 finish is `POST /v1/answer`: call `run_workflow` and return the answer, citations, faithfulness, latency, token cost, trace id, and abstention. The open demo has no signup. An in-process rate limit and a max question length protect the LLM budget. Phoenix spans are the run log. Doc Agent Studio stays the UI.
 
 ## Run locally
 
@@ -38,7 +40,7 @@ Settings use pydantic-settings (see `agentic_doc_api.config.ApiSettings`). Usefu
 | `LOG_LEVEL` | `INFO` | Logging level |
 | `ENVIRONMENT` | `dev` | `dev` enables reload by default in `uv run api` |
 
-Supabase / LLM secrets are **not** required for Phase 0.
+Phase 0 does not need `LLM_API_KEY`. `/v1/answer` will use the same `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` as the Answer workflow. Set `PHOENIX_ENABLED=true` to export spans.
 
 ## Tests
 
@@ -65,14 +67,7 @@ src/agentic_doc_api/
   logging.py
   deps.py
   middleware/       # X-Request-ID
-  api/              # routers (health today; /v1 later)
+  api/              # routers (health today; /v1/answer is the finish)
 ```
 
-## Intentionally not here yet
-
-- Supabase Auth / JWT
-- SQLAlchemy / Alembic
-- `/v1/retrieve` or `/v1/workflows/*`
-- Background jobs
-
-See root [AGENTS.md](../../AGENTS.md) for the M3 roadmap.
+See root [AGENTS.md](../../AGENTS.md) for the M3 finish.

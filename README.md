@@ -21,17 +21,19 @@ packages/
 apps/
   explorer/ # M1 RAG explorer — Streamlit UI + ingest CLI
   studio/   # M2 Doc Agent — Streamlit UI for the Answer workflow
-  api/      # M3 production FastAPI backend (skeleton)
+  api/      # M3 FastAPI boundary (health skeleton; /v1/answer is the finish)
 ```
 
-## M3 API (skeleton)
+## M3 API
+
+Phase 0 is running. The finish is an open Answer API: no signup, `POST /v1/answer`, rate limit in the process, Phoenix as the run log.
 
 ```bash
 uv run api                    # http://localhost:8000 — /health, /ready, /docs
 uv run pytest apps/api -q
 ```
 
-Details: [`apps/api/README.md`](apps/api/README.md).
+Details: [`apps/api/README.md`](apps/api/README.md). Milestone history: [AGENTS.md](AGENTS.md).
 
 ## Setup
 

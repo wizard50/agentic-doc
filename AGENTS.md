@@ -7,14 +7,9 @@
 - **Approach**: Incremental delivery across three milestones (see below).
 
 ## Current Focus
-**Milestone 3 – Production Backend**
+**Milestone 3 – Production API**
 
-Build a production API and backend on top of the completed M1 RAG core and M2 Answer agent:
-
-- FastAPI orchestration of RAG + agent workflows
-- Auth, persistence, background jobs (planned)
-- Guardrails, cost tracking, production observability
-- Docker + deployment
+Thin HTTP boundary for the M2 Answer workflow. One product, open demo, no signup. FastAPI is the only backend. The Rust book stays the corpus. Scope is Milestone 3 below.
 
 **Foundation (M1, closed):** see Milestone 1 below. Prefer `from agentic_doc_rag import ...` for library consumers.
 
@@ -49,14 +44,16 @@ Delivered agentic layer on top of Milestone 1:
 - **Doc Agent UI** (`apps/studio`, `uv run studio`): Streamlit demo for Answer with metrics, step timeline, citations, and evidence
 - Focus on Software Engineering / technical documentation domain
 
-### Milestone 3 – Production Backend ← Current
-- **Phase 0 (skeleton):** `apps/api` — FastAPI app factory, settings, `/health` + `/ready`, CORS, request IDs, OpenAPI, Dockerfile (`uv run api`)
-- FastAPI backend orchestrating M1 + M2 (planned)
-- Supabase (Auth + Postgres) + Alembic for persistence (planned)
-- Background job processing
-- Guardrails, cost tracking, and production observability
-- Docker + deployment setup
-- Clean API for both simple RAG and complex agentic workflows
+### Milestone 3 – Production API ← Current
+
+Thin HTTP boundary for the M2 Answer workflow. Open demo, no signup. FastAPI only.
+
+- **Phase 0 (shipped):** `apps/api` — app factory, settings, `/health` + `/ready`, CORS, request IDs, OpenAPI, Dockerfile (`uv run api`)
+- **`POST /v1/answer`:** `run_workflow` result with citations, faithfulness, latency, token cost, trace id, and abstention
+- **Abuse limits:** in-process rate limit and max question length. The server holds `LLM_API_KEY`
+- **Run log:** Phoenix / OpenTelemetry spans. The response already carries the caller-facing metrics. No run-log database
+- **Eval:** agent golden set of about 40–60 items (unanswerable and messy cases) and `EVAL.md`
+- **UI:** existing Doc Agent Studio
 
 ## Tech Stack & Key Decisions
 - **Orchestration**: LangGraph (primary)
